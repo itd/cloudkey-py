@@ -5,6 +5,8 @@ import urllib
 import urllib2
 import simplejson as json
 
+from dkapi import newhttp
+
 class DkAPIException(Exception): pass
 class NotFound(DkAPIException): pass
 class MissingArgument(DkAPIException): pass
@@ -17,6 +19,24 @@ class DkAPI:
         self.login = login
         self.password = password
         self.hostname = hostname
+
+    def media_upload(self, filename=None, progress_callback=None):
+        if not filename:
+            raise IllegalArgument('Arguement \'filename\' is mandatory')
+
+        params = {'file' : open(filename, "rb")}
+
+        if progress_callback:
+            newhttp.set_callback(progress_callback)
+
+        result = self.file_upload()
+        url = result['url']
+        print url
+
+        httpOpener = urllib2.build_opener(newhttp.newHTTPHandler)
+        response = httpOpener.open(url, params)
+        result = json.loads(response.read())
+        return result
 
     def __getattr__(self, method):
         
