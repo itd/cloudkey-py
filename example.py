@@ -1,44 +1,54 @@
 #import time
 
+import time
+import sys
+
 from dkapi import DkAPI
 
 def my_cb(name, progress, finished):
     print '%s %s %s' % (name, progress, finished)
 
 c = DkAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
-print c.media_upload('/home/sebest/Videos/i_am_legend-tlr2_1080p.mov')
 
-#result = c.media_create()
-#print c.media_asset_set(id=result['id'], preset='source', url='http://isidev-01-01.dev.dailymotion.com/video/695/203/11302596:source.mov')
-#while True:
-#    res = c.media_asset_process(id=result['id'], preset='flv_h263_mp3')
-#    if res == 'Asset processing':
-#        print 'ok'
-#        break
-#    else:
-#        print 'sleeping'
-#        time.sleep(5)
-#
-#
-#print result
+# We upload one of our video
+media_info = c.media_upload('/home/sebest/Videos/i_am_legend-tlr2_h1080p.mov')
+
+# We create a new media
+media_id = c.media_create()['id']
+
+# We set a metadata 'title'
+media_title = media_info['name'].replace('_', ' ')
+c.media_meta_set(id=media_id, key='title', value=media_title)
+
+# We set the video that we just uploaded as the source of our media
+media_url = media_info['url']
+c.media_asset_set(id=media_id, preset='source', url=media_url)
+
+# We wait until our source is ready
+while True:
+    asset = c.media_asset_get(id=media_id, preset='source')
+    if asset['status'] != 'ready':
+        if asset['status'] == 'error':
+            print 'Source couldn t be downloaded!'
+            sys.exit(0)
+        print 'Source not ready: %s' % asset['status']
+        time.sleep(5)
+        continue
+    print 'Source ready'
+    break
+
+# We encode our source in two preset
+c.media_asset_process(id=media_id, preset='flv_h263_mp3')
+c.media_asset_process(id=media_id, preset='mp4_h264_aac')
+
+# We list our assets
+print c.media_asset_list(id=media_id)
+
+
 #print c.media_delete(id=result['id'])
+#print c.media_info(id='4b6b24a31b5d421249000009')
 #
-#result = c.media_create()
-#result = c.media_create()
-#result = c.media_create()
-#
-#print c.media_meta_set(id=result['id'], key='title', value='mon super titre')
-#
-#c.media_asset_set(id='4b6b0c1a1b5d4237bf000007', preset='source', url='http://isidev-01-01.dev.dailymotion.com/video/695/203/11302596:source.mov')
-#print c.media_asset_process(id='4b6b0c1a1b5d4237bf000007', preset='flv_h263_mp3')
-#print c.media_asset_process(id='4b6b0c1a1b5d4237bf000007', preset='flv_h263_mp3')
-#print c.media_asset_process(id='4b6b0c1a1b5d4237bf000007', preset='flv_h263_mp3')
 #fields = json.dumps(['assets.source.status', 'metas'])
 #filter = json.dumps({'assets.source.status' : 'ready'})
 #for i in c.media_list(filter=filter, fields=fields):
-#print c.media_info(id='4b6b24a31b5d421249000009')
-#
-#for i in c.media_list():
 #    print i
-#
-#print c.media_asset_list(id='4b6b0c1a1b5d4237bf000007')
