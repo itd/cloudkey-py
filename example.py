@@ -48,7 +48,7 @@ print c.media_asset_list(id=media_id)
 #print c.media_delete(id=result['id'])
 #print c.media_info(id='4b6b24a31b5d421249000009')
 #
-#fields = json.dumps(['assets.source.status', 'metas'])
+#fields = json.dumps(['assets.source.status', 'meta'])
 #filter = json.dumps({'assets.source.status' : 'ready'})
 #for i in c.media_list(filter=filter, fields=fields):
 #    print i

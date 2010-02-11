@@ -71,11 +71,25 @@ class DkapiTestBase(unittest.TestCase):
         self.assertEqual(type(res), str)
         self.assertEqual(res, 'Meta removed')
         
-        res = self.client.media_meta_remove(id=media_id['id'], key='mykey')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'Meta removed')
+        self.assertRaises(NotFound, self.client.media_meta_remove, id=media_id['id'], key='mykey')
 
         self.assertRaises(NotFound, self.client.media_meta_get, id=media_id['id'], key='mykey')
+
+    def test_media_meta_list(self):
+        media_id = self.client.media_create()
+        res = self.client.media_meta_list(id=media_id['id'])
+        self.assertEqual(type(res), dict)
+        self.assertEqual(len(res.keys()), 0)
+
+        for i in range(10):
+            self.client.media_meta_set(id=media_id['id'], key='mykey-%d' % i, value='value-%d' % i)
+
+        res = self.client.media_meta_list(id=media_id['id'])
+        self.assertEqual(type(res), dict)
+        self.assertEqual(len(res.keys()), 10)
+
+        for i in range(10):
+            self.assertEqual(res['mykey-%d' %i], 'value-%d' % i)
 
     def test_media_list(self):
         res = self.client.media_list()
@@ -96,12 +110,33 @@ class DkapiTestBase(unittest.TestCase):
         res = self.client.media_list(page=2, count=6)
         self.assertEqual(res, medias[6:12])
 
-#        fields = json.dumps(['assets.source.status', 'metas'])
-#        filter = json.dumps({'assets.source.status' : 'ready'})
-#        for i in self.client.media_list(filter=filter, fields=fields):
-#            print i['id']
+        x = 0
+        for media in medias:
+            x += 1
+            if x % 2:
+                for i in range(5):
+                    self.client.media_meta_set(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
+            else:
+                self.client.media_meta_set(id=media['id'], key='mykey-1', value='42')
 
-#        self.assertEqual(True, True)
+        fields = json.dumps(['meta.mykey-2', 'meta.mykey-3'])
+        filter = json.dumps({'meta.mykey-1' : 'value-1'})
+        res = self.client.media_list(fields=fields, filter=filter)
+        self.assertEqual(len(res), 13)
+
+        for i in res:
+            self.assertEqual(len(i.keys()), 2)
+            self.assertEqual(i['meta'].get('mykey-2'), 'value-2')
+            self.assertEqual(i['meta'].get('mykey-3'), 'value-3')
+            self.assertEqual(i['meta'].get('mykey-1'), None)
+
+        filter = json.dumps({'meta.mykey-1' : '42'})
+        res = self.client.media_list(filter=filter)
+        self.assertEqual(len(res), 12)
+        for i in res:
+            self.assertEqual(len(i.keys()), 1)
+            self.assertEqual(i.keys(), ['id'])
+
 
 if __name__ == '__main__':
     unittest.main()

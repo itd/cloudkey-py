@@ -31,7 +31,7 @@ class DkAPI:
 
         result = self.file_upload()
         url = result['url']
-        print url
+#        print url
 
         httpOpener = urllib2.build_opener(newhttp.newHTTPHandler)
         response = httpOpener.open(url, params)
@@ -51,7 +51,7 @@ class DkAPI:
 
             params = urllib.urlencode(kwargs)
             url = 'http://%s/%s?%s' % (self.hostname, method.replace('_', '.'), params)
-            print url
+#            print url
             try:
                 response = opener.open(url)
                 result = json.loads(response.read())
