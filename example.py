@@ -1,17 +1,20 @@
-#import time
+#!/bin/env python
 
 import time
-import sys
 
 from dkapi import DkAPI
 
-def my_cb(name, progress, finished):
-    print '%s %s %s' % (name, progress, finished)
-
+# We connect to the api with our login/password
 c = DkAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
 
 # We upload one of our video
-media_info = c.media_upload('/home/sebest/Videos/i_am_legend-tlr2_h1080p.mov')
+
+# We can have a callback to see the progress of the upload
+#def my_upload_cb(name, progress, finished):
+#    print '%s %s %s' % (name, progress, finished)
+#
+#media_info = c.media_upload('my_funny_video.3gp', my_upload_cb)
+media_info = c.media_upload('my_funny_video.3gp')
 
 # We create a new media
 media_id = c.media_create()['id']
@@ -24,31 +27,41 @@ c.media_meta_set(id=media_id, key='title', value=media_title)
 media_url = media_info['url']
 c.media_asset_set(id=media_id, preset='source', url=media_url)
 
-# We wait until our source is ready
-while True:
-    asset = c.media_asset_get(id=media_id, preset='source')
-    if asset['status'] != 'ready':
-        if asset['status'] == 'error':
-            print 'Source couldn t be downloaded!'
-            sys.exit(0)
-        print 'Source not ready: %s' % asset['status']
-        time.sleep(5)
-        continue
-    print 'Source ready'
-    break
+# This function retrieve an asset to check it's status and block until it's ready or failed
+def wait_for_asset(asset_name):
+    while True:
+        asset = c.media_asset_get(id=media_id, preset=asset_name)
+        if asset['status'] != 'ready':
+            if asset['status'] == 'error':
+                print 'Asset couldn\'t be downloaded!'
+                return False
+            print '%s not ready: %s' % (asset['status'], asset_name)
+            time.sleep(5)
+            continue
+        print '%s ready' % asset_name
+        return True
 
-# We encode our source in two preset
+# We wait until our source is ready
+wait_for_asset('source')
+
+# We encode our source in two preset and wait for them
 c.media_asset_process(id=media_id, preset='flv_h263_mp3')
 c.media_asset_process(id=media_id, preset='mp4_h264_aac')
 
-# We list our assets
+wait_for_asset('flv_h263_mp3')
+wait_for_asset('mp4_h264_aac')
+
+# We list the assets of the media we just uploaded
 print c.media_asset_list(id=media_id)
 
+# Print the media info of the assets that are ready for web streaming
+for media in c.media_list(filter={'assets.flv_h263_mp3.status' : 'ready'}):
+    print c.media_info(id=media['id'])
 
-#print c.media_delete(id=result['id'])
-#print c.media_info(id='4b6b24a31b5d421249000009')
-#
-#fields = json.dumps(['assets.source.status', 'meta'])
-#filter = json.dumps({'assets.source.status' : 'ready'})
-#for i in c.media_list(filter=filter, fields=fields):
-#    print i
+# we display the title and the status of the mp4 asset for medias that have their source in ready status
+for media in c.media_list(fields=['assets.mp4_h264_aac.status', 'meta.title'], filter={'assets.source.status' : 'ready'}):
+    print media
+
+# We delete the medias that have their source asset in error status
+for media in c.media_list(filter={'assets.source.status' : 'error'}):
+    c.media_delete(id=media['id'])

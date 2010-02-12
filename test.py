@@ -2,7 +2,6 @@ import unittest
 import os
 
 from dkapi import *
-import simplejson as json
 
 class DkapiTestBase(unittest.TestCase):
 
@@ -43,14 +42,24 @@ class DkapiTestBase(unittest.TestCase):
 
     def test_media_meta_set(self):
         media_id = self.client.media_create()
-        res = self.client.media_meta_set(id=media_id['id'], key='mykey', value='value')
 
+        res = self.client.media_meta_set(id=media_id['id'], key='mykey', value='value')
         self.assertEqual(type(res), str)
         self.assertEqual(res, 'Meta set')
 
         self.assertRaises(MissingArgument, self.client.media_meta_set, id=media_id['id'], key='mykey')
         self.assertRaises(MissingArgument, self.client.media_meta_set, id=media_id['id'], value='myvalue')
         self.assertRaises(MissingArgument, self.client.media_meta_set, id=media_id['id'])
+
+        # update value
+        res = self.client.media_meta_set(id=media_id['id'], key='mykey', value='value')
+        self.assertEqual(type(res), str)
+        self.assertEqual(res, 'Meta set')
+
+        # unicode key/value
+        res = self.client.media_meta_set(id=media_id['id'], key=u'u_mykey', value=u'u_value')
+        self.assertEqual(type(res), str)
+        self.assertEqual(res, 'Meta set')
 
     def test_media_meta_get(self):
         media_id = self.client.media_create()
@@ -62,6 +71,18 @@ class DkapiTestBase(unittest.TestCase):
 
         self.assertRaises(NotFound, self.client.media_meta_get, id=media_id['id'], key='invalid_key')
         self.assertRaises(NotFound, self.client.media_meta_get, id=media_id['id'], key=[])
+
+        # update value
+        self.client.media_meta_set(id=media_id['id'], key='mykey', value='new_value')
+        res = self.client.media_meta_get(id=media_id['id'], key='mykey')
+        self.assertEqual(type(res), str)
+        self.assertEqual(res, 'new_value')
+
+        # unicode key/value
+        self.client.media_meta_set(id=media_id['id'], key=u'u_mykey', value=u'u_value')
+        res = self.client.media_meta_get(id=media_id['id'], key=u'u_mykey')
+        self.assertEqual(type(res), str)
+        self.assertEqual(res, u'u_value')
 
     def test_media_meta_remove(self):
         media_id = self.client.media_create()
@@ -119,8 +140,8 @@ class DkapiTestBase(unittest.TestCase):
             else:
                 self.client.media_meta_set(id=media['id'], key='mykey-1', value='42')
 
-        fields = json.dumps(['meta.mykey-2', 'meta.mykey-3'])
-        filter = json.dumps({'meta.mykey-1' : 'value-1'})
+        fields = ['meta.mykey-2', 'meta.mykey-3']
+        filter = {'meta.mykey-1' : 'value-1'}
         res = self.client.media_list(fields=fields, filter=filter)
         self.assertEqual(len(res), 13)
 
@@ -130,7 +151,7 @@ class DkapiTestBase(unittest.TestCase):
             self.assertEqual(i['meta'].get('mykey-3'), 'value-3')
             self.assertEqual(i['meta'].get('mykey-1'), None)
 
-        filter = json.dumps({'meta.mykey-1' : '42'})
+        filter = {'meta.mykey-1' : '42'}
         res = self.client.media_list(filter=filter)
         self.assertEqual(len(res), 12)
         for i in res:
