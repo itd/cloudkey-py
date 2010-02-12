@@ -15,10 +15,11 @@ class InvalidArgument(DkAPIException): pass
 
 class DkAPI:
 
-    def __init__(self, login, password, hostname):
+    def __init__(self, login, password, hostname, proxy=None):
         self.login = login
         self.password = password
         self.hostname = hostname
+        self.proxy = proxy
 
     def media_upload(self, filename=None, progress_callback=None):
         if not filename:
@@ -33,8 +34,13 @@ class DkAPI:
         url = result['url']
 #        print url
 
-        httpOpener = urllib2.build_opener(newhttp.newHTTPHandler)
-        response = httpOpener.open(url, params)
+        if self.proxy:
+            proxy_handler = urllib2.ProxyHandler({'http': self.proxt})
+            opener = urllib2.build_opener(proxy_handler, newhttp.newHTTPHandler)
+        else:
+            opener = urllib2.build_opener(newhttp.newHTTPHandler)
+
+        response = opener.open(url, params)
         result = json.loads(response.read())
         return result
 
@@ -45,13 +51,19 @@ class DkAPI:
             password_mgr.add_password(None, 'http://%s/' % self.hostname, self.login, self.password)
             auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
 
-#            proxy_handler = urllib2.ProxyHandler({'http': 'http://127.0.0.1:8888/'})
-#            opener = urllib2.build_opener(auth_handler, proxy_handler)
-            opener = urllib2.build_opener(auth_handler)
-
+            for k, v in kwargs.copy().items():
+                if type(v) not in (str, unicode, int, float):
+                    kwargs[k] = json.dumps(v)
             params = urllib.urlencode(kwargs)
+
+            if self.proxy:
+                proxy_handler = urllib2.ProxyHandler({'http': self.proxt})
+                opener = urllib2.build_opener(auth_handler, proxy_handler)
+            else:
+                opener = urllib2.build_opener(auth_handler)
+
             url = 'http://%s/%s?%s' % (self.hostname, method.replace('_', '.'), params)
-#            print url
+            print url
             try:
                 response = opener.open(url)
                 result = json.loads(response.read())
