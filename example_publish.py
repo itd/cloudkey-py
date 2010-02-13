@@ -1,9 +1,9 @@
 #/usr/bin/env python
 
-from dkapi import DkAPI
+from dcapi import DcAPI
 import simplejson as json
 
-c = DkAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
+c = DcAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
 
 # We upload one of our video
 media_info = c.media_upload('/home/sebest/Videos/i_am_legend-tlr2_h1080p.mov')

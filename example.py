@@ -2,10 +2,10 @@
 
 import time
 
-from dkapi import DkAPI
+from dcapi import DcAPI
 
 # We connect to the api with our login/password
-c = DkAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
+c = DcAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
 
 # We upload one of our video
 

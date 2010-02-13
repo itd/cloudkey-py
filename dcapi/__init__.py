@@ -5,15 +5,15 @@ import urllib
 import urllib2
 import simplejson as json
 
-from dkapi import newhttp
+from dcapi import newhttp
 
-class DkAPIException(Exception): pass
-class NotFound(DkAPIException): pass
-class MissingArgument(DkAPIException): pass
-class InvalidArgument(DkAPIException): pass
+class DcAPIException(Exception): pass
+class NotFound(DcAPIException): pass
+class MissingArgument(DcAPIException): pass
+class InvalidArgument(DcAPIException): pass
 
 
-class DkAPI:
+class DcAPI:
 
     def __init__(self, login, password, hostname, proxy=None):
         self.login = login

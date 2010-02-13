@@ -1,12 +1,12 @@
 import unittest
 import os, time
 
-from dkapi import *
+from dcapi import *
 
-class DkapiTestBase(unittest.TestCase):
+class DcapiTestBase(unittest.TestCase):
 
     def setUp(self):
-        self.client = DkAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
+        self.client = DcAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
         self.client.media_reset()
 
     def tearDown(self):
