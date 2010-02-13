@@ -28,7 +28,7 @@ media_url = media_info['url']
 c.media_asset_set(id=media_id, preset='source', url=media_url)
 
 # This function retrieve an asset to check it's status and block until it's ready or failed
-def wait_for_asset(asset_name):
+def wait_for_asset(media_id, asset_name):
     while True:
         asset = c.media_asset_get(id=media_id, preset=asset_name)
         if asset['status'] != 'ready':
@@ -42,14 +42,14 @@ def wait_for_asset(asset_name):
         return True
 
 # We wait until our source is ready
-wait_for_asset('source')
+wait_for_asset(media_id, 'source')
 
 # We encode our source in two preset and wait for them
 c.media_asset_process(id=media_id, preset='flv_h263_mp3')
 c.media_asset_process(id=media_id, preset='mp4_h264_aac')
 
-wait_for_asset('flv_h263_mp3')
-wait_for_asset('mp4_h264_aac')
+wait_for_asset(media_id, 'flv_h263_mp3')
+wait_for_asset(media_id, 'mp4_h264_aac')
 
 # We list the assets of the media we just uploaded
 print c.media_asset_list(id=media_id)
