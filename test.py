@@ -178,12 +178,12 @@ class DcapiTestBase(unittest.TestCase):
             asset = self.client.media_asset_get(id=media_id, preset=asset_name)
             if asset['status'] != 'ready':
                 if asset['status'] == 'error':
-                    print 'Asset couldn\'t be downloaded!'
+                    #print 'Asset couldn\'t be downloaded!'
                     return False
-                print '%s not ready: %s' % (asset['status'], asset_name)
+                #print '%s not ready: %s' % (asset_name, asset['status'])
                 time.sleep(5)
                 continue
-            print '%s ready' % asset_name
+            #print '%s ready' % asset_name
             return True
 
     def test_media_asset_get(self):
@@ -202,6 +202,41 @@ class DcapiTestBase(unittest.TestCase):
         res = self.client.media_asset_get(id=media['id'], preset='source')
         self.assertEqual('status' in res.keys(), True)
         self.assertEqual(res['status'], 'ready')
+
+
+    def wait_for_asset_remove(self, media_id, asset_name, timeout=10):
+        for i in range(timeout):
+            try:
+                self.client.media_asset_get(id=media_id, preset=asset_name)
+            except NotFound, e:
+                return True
+            time.sleep(1)
+        else:
+            return False
+
+    def test_media_asset_remove(self):
+        media_info = self.client.media_upload('my_funny_video.3gp')
+        media_url = media_info['url']
+
+        media = self.client.media_create()
+        res = self.client.media_asset_set(id=media['id'], preset='source', url=media_url)
+        res = self.wait_for_asset(media['id'], 'source')
+        self.assertEqual(res, True)
+
+        res = self.client.media_asset_remove(id=media['id'], preset='source')
+        self.assertEqual(res, 'Asset removed')
+        res = self.wait_for_asset_remove(media['id'], 'source', 20)
+        self.assertEqual(res, True)
+
+        self.client.media_asset_set(id=media['id'], preset='source', url=media_url)
+        res = self.client.media_asset_remove(id=media['id'], preset='source')
+        self.assertEqual(res, 'Asset removed')
+
+        res = self.wait_for_asset_remove(media['id'], 'source')
+        self.assertEqual(res, True)
+        res = self.wait_for_asset_remove(media['id'], 'source')
+        self.assertEqual(res, True)
+        self.assertRaises(NotFound, self.client.media_asset_get, id=media['id'], preset='source')
 
 
 if __name__ == '__main__':
