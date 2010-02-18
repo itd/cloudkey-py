@@ -27,14 +27,14 @@ class DcapiTestBase(unittest.TestCase):
         self.assertEqual(res.keys(), ['id'])
         self.assertEqual(len(res['id']), 24)
 
-        self.assertRaises(InvalidArgument,  self.client.media_info, id=media['id'][:-2])
+# TODO       self.assertRaises(InvalidArgument,  self.client.media_info, id=media['id'][:-2])
+        self.assertRaises(NotFound,  self.client.media_info, id=media['id'][:-2])
 
     def test_media_delete(self):
         media = self.client.media_create()
         res = self.client.media_delete(id=media['id'])
 
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'Media deleted')
+        self.assertEqual(res, None)
 
         self.assertRaises(NotFound, self.client.media_info, id=media['id'])
 
@@ -44,8 +44,7 @@ class DcapiTestBase(unittest.TestCase):
         media = self.client.media_create()
 
         res = self.client.media_meta_set(id=media['id'], key='mykey', value='value')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'Meta set')
+        self.assertEqual(res, None)
 
         self.assertRaises(MissingArgument, self.client.media_meta_set, id=media['id'], key='mykey')
         self.assertRaises(MissingArgument, self.client.media_meta_set, id=media['id'], value='myvalue')
@@ -53,21 +52,20 @@ class DcapiTestBase(unittest.TestCase):
 
         # update value
         res = self.client.media_meta_set(id=media['id'], key='mykey', value='value')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'Meta set')
+        self.assertEqual(res, None)
 
         # unicode key/value
         res = self.client.media_meta_set(id=media['id'], key=u'u_mykey', value=u'u_value')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'Meta set')
+        self.assertEqual(res, None)
 
     def test_media_meta_get(self):
         media = self.client.media_create()
         self.client.media_meta_set(id=media['id'], key='mykey', value='value')
 
         res = self.client.media_meta_get(id=media['id'], key='mykey')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'value')
+        self.assertEqual(type(res), dict)
+        self.assertEqual(res.keys(), ['value'])
+        self.assertEqual(res['value'], 'value')
 
         self.assertRaises(NotFound, self.client.media_meta_get, id=media['id'], key='invalid_key')
         self.assertRaises(NotFound, self.client.media_meta_get, id=media['id'], key=[])
@@ -75,22 +73,23 @@ class DcapiTestBase(unittest.TestCase):
         # update value
         self.client.media_meta_set(id=media['id'], key='mykey', value='new_value')
         res = self.client.media_meta_get(id=media['id'], key='mykey')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'new_value')
+        self.assertEqual(type(res), dict)
+        self.assertEqual(res.keys(), ['value'])
+        self.assertEqual(res['value'], 'new_value')
 
         # unicode key/value
         self.client.media_meta_set(id=media['id'], key=u'u_mykey', value=u'u_value')
         res = self.client.media_meta_get(id=media['id'], key=u'u_mykey')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, u'u_value')
+        self.assertEqual(type(res), dict)
+        self.assertEqual(res.keys(), ['value'])
+        self.assertEqual(res['value'], u'u_value')
 
     def test_media_meta_remove(self):
         media = self.client.media_create()
         self.client.media_meta_set(id=media['id'], key='mykey', value='value')
 
         res = self.client.media_meta_remove(id=media['id'], key='mykey')
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'Meta removed')
+        self.assertEqual(res, None)
         
         self.assertRaises(NotFound, self.client.media_meta_remove, id=media['id'], key='mykey')
 
@@ -170,8 +169,7 @@ class DcapiTestBase(unittest.TestCase):
 
         media = self.client.media_create()
         res = self.client.media_asset_set(id=media['id'], preset='source', url=media_url)
-        self.assertEqual(type(res), str)
-        self.assertEqual(res, 'Asset sets')
+        self.assertEqual(res, None)
 
     def wait_for_asset(self, media_id, asset_name):
         while True:
@@ -224,13 +222,13 @@ class DcapiTestBase(unittest.TestCase):
         self.assertEqual(res, True)
 
         res = self.client.media_asset_remove(id=media['id'], preset='source')
-        self.assertEqual(res, 'Asset removed')
+        self.assertEqual(res, None)
         res = self.wait_for_asset_remove(media['id'], 'source', 20)
         self.assertEqual(res, True)
 
         self.client.media_asset_set(id=media['id'], preset='source', url=media_url)
         res = self.client.media_asset_remove(id=media['id'], preset='source')
-        self.assertEqual(res, 'Asset removed')
+        self.assertEqual(res, None)
 
         res = self.wait_for_asset_remove(media['id'], 'source')
         self.assertEqual(res, True)
