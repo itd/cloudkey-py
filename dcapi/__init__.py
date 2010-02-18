@@ -63,24 +63,25 @@ class DcAPI:
             else:
                 opener = urllib2.build_opener(auth_handler)
 
-            url = 'http://%s/%s?%s' % (self.hostname, method.replace('_', '.'), params)
+            url = 'http://%s/api/1.0/rest/%s.json?%s' % (self.hostname, method.replace('_', '/'), params)
             print url
             try:
                 response = opener.open(url)
-                result = json.loads(response.read())
-                return result
             except urllib2.HTTPError, e:
-                if e.code in (404, 400):
-                    try:
-                        result = json.loads(e.read())
-                    except ValueError:
-                        raise InvalidMethod(method)
-                    if result['error'] == 'not_found':
-                        raise NotFound(result['message'])
-                    elif result['error'] == 'missing_argument':
-                        raise MissingArgument(result['message'])
-                    elif result['error'] == 'invalid_argument':
-                        raise InvalidArgument(result['message'])
+                data = e.read()
+                if e.code == 404:
+                    if not len(data):
+                        raise NotFound()
+                    else:
+                        raise DcAPIException(data)
+                elif e.code == 400:
+                    if 'Missing required parameter' in data:
+                        raise MissingArgument(data)
                 raise
+            data = response.read()
+            if data:
+                return json.loads(data)
+            else:
+                return None
 
         return handler
