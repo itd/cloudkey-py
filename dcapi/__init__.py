@@ -11,6 +11,7 @@ class DcAPIException(Exception): pass
 class NotFound(DcAPIException): pass
 class MissingArgument(DcAPIException): pass
 class InvalidArgument(DcAPIException): pass
+class InvalidMethod(DcAPIException): pass
 
 
 class DcAPI:
@@ -70,7 +71,10 @@ class DcAPI:
                 return result
             except urllib2.HTTPError, e:
                 if e.code in (404, 400):
-                    result = json.loads(e.read())
+                    try:
+                        result = json.loads(e.read())
+                    except ValueError:
+                        raise InvalidMethod(method)
                     if result['error'] == 'not_found':
                         raise NotFound(result['message'])
                     elif result['error'] == 'missing_argument':
