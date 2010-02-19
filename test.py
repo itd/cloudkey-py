@@ -6,7 +6,7 @@ from dcapi import *
 class DcapiTestBase(unittest.TestCase):
 
     def setUp(self):
-        self.client = DcAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
+        self.client = DcApi('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
         self.client.media_reset()
 
     def tearDown(self):

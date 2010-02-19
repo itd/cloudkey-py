@@ -7,14 +7,14 @@ import simplejson as json
 
 from dcapi import newhttp
 
-class DcAPIException(Exception): pass
-class NotFound(DcAPIException): pass
-class MissingArgument(DcAPIException): pass
-class InvalidArgument(DcAPIException): pass
-class InvalidMethod(DcAPIException): pass
+class DcApiException(Exception): pass
+class NotFound(DcApiException): pass
+class MissingArgument(DcApiException): pass
+class InvalidArgument(DcApiException): pass
+class InvalidMethod(DcApiException): pass
 
 
-class DcAPI:
+class DcApi:
 
     def __init__(self, login, password, hostname, proxy=None):
         self.login = login
@@ -63,25 +63,21 @@ class DcAPI:
             else:
                 opener = urllib2.build_opener(auth_handler)
 
-            url = 'http://%s/api/1.0/rest/%s.json?%s' % (self.hostname, method.replace('_', '/'), params)
-            print url
+            url = 'http://%s/%s.json?%s' % (self.hostname, method.replace('_', '.'), params)
+#            print url
             try:
                 response = opener.open(url)
             except urllib2.HTTPError, e:
-                data = e.read()
-                if e.code == 404:
-                    if not len(data):
+                if e.code in (404, 400):
+                    result = json.loads(e.read())
+                    if result['status_code'] == 404 and result['type'] == 'ApiNotFound':
                         raise NotFound()
-                    else:
-                        raise DcAPIException(data)
-                elif e.code == 400:
-                    if 'Missing required parameter' in data:
-                        raise MissingArgument(data)
-                raise
-            data = response.read()
-            if data:
-                return json.loads(data)
-            else:
+                    elif result['status_code'] == 400 and result['type'] == 'ApiMissingParam':
+                        raise MissingArgument(result['message'])
+                    raise DcApiException(result)
+
+            if response.code == 204:
                 return None
+            return json.loads(response.read())
 
         return handler

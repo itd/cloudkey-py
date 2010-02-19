@@ -1,11 +1,11 @@
 #!/bin/env python
 
-import time
+import time, sys
 
 from dcapi import DcAPI
 
 # We connect to the api with our login/password
-c = DcAPI('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
+c = DcApi('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
 
 # We upload one of our video
 
@@ -35,14 +35,14 @@ def wait_for_asset(media_id, asset_name):
             if asset['status'] == 'error':
                 print 'Asset couldn\'t be downloaded!'
                 return False
-            print '%s not ready: %s' % (asset['status'], asset_name)
+            print '%s not ready: %s' % (asset_name, asset['status'])
             time.sleep(5)
             continue
         print '%s ready' % asset_name
         return True
 
 # We wait until our source is ready
-wait_for_asset(media_id, 'source')
+#wait_for_asset(media_id, 'source')
 
 # We encode our source in two preset and wait for them
 c.media_asset_process(id=media_id, preset='flv_h263_mp3')
@@ -50,7 +50,7 @@ c.media_asset_process(id=media_id, preset='mp4_h264_aac')
 
 wait_for_asset(media_id, 'flv_h263_mp3')
 wait_for_asset(media_id, 'mp4_h264_aac')
-
+#sys.exit(0)
 # We list the assets of the media we just uploaded
 print c.media_asset_list(id=media_id)
 
