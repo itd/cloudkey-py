@@ -2,7 +2,7 @@
 
 import time, sys
 
-from dcapi import DcAPI
+from dcapi import DcApi
 
 # We connect to the api with our login/password
 c = DcApi('sebest', 'sebest', 'dk_api.sebest.dev.dailymotion.com')
