@@ -8,9 +8,9 @@ from wapic import *
 
 from dcapi import newhttp
 
-class DcApi(WApiC):
+class Media(WApiC):
 
-    def media_upload(self, filename=None, progress_callback=None):
+    def upload(self, filename=None, progress_callback=None):
         if not filename:
             raise IllegalArgument('Arguement \'filename\' is mandatory')
 
@@ -19,7 +19,7 @@ class DcApi(WApiC):
         if progress_callback:
             newhttp.set_callback(progress_callback)
 
-        result = self.file_upload()
+        result = self.file__upload()
         url = result['url']
 #        print url
 
