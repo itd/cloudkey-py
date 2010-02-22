@@ -21,16 +21,16 @@ media_id = media.create()['id']
 
 # We set a metadata 'title'
 media_title = media_info['name'].replace('_', ' ')
-media.meta_set(id=media_id, key='title', value=media_title)
+media.set_meta(id=media_id, key='title', value=media_title)
 
 # We set the video that we just uploaded as the source of our media
 media_url = media_info['url']
-media.asset_set(id=media_id, preset='source', url=media_url)
+media.set_asset(id=media_id, preset='source', url=media_url)
 
 # This function retrieve an asset to check it's status and block until it's ready or failed
 def wait_for_asset(media_id, asset_name):
     while True:
-        asset = media.asset_get(id=media_id, preset=asset_name)
+        asset = media.get_asset(id=media_id, preset=asset_name)
         if asset['status'] != 'ready':
             if asset['status'] == 'error':
                 print 'Asset couldn\'t be downloaded!'
@@ -45,14 +45,14 @@ def wait_for_asset(media_id, asset_name):
 #wait_for_asset(media_id, 'source')
 
 # We encode our source in two preset and wait for them
-media.asset_process(id=media_id, preset='flv_h263_mp3')
-media.asset_process(id=media_id, preset='mp4_h264_aac')
+media.process_asset(id=media_id, preset='flv_h263_mp3')
+media.process_asset(id=media_id, preset='mp4_h264_aac')
 
 wait_for_asset(media_id, 'flv_h263_mp3')
 wait_for_asset(media_id, 'mp4_h264_aac')
 #sys.exit(0)
 # We list the assets of the media we just uploaded
-print media.asset_list(id=media_id)
+print media.list_asset(id=media_id)
 
 # Print the media info of the assets that are ready for web streaming
 for m in media.list(filter={'assets.flv_h263_mp3.status' : 'ready'}):

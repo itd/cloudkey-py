@@ -42,73 +42,73 @@ class MediaTestBase(unittest.TestCase):
 
         self.assertRaises(NotFound, self.media.delete, id='1'+media['id'][1:])
 
-    def test_media_meta_set(self):
+    def test_media_set_meta(self):
         media = self.media.create()
 
-        res = self.media.meta_set(id=media['id'], key='mykey', value='value')
+        res = self.media.set_meta(id=media['id'], key='mykey', value='value')
         self.assertEqual(res, None)
 
-        self.assertRaises(MissingArgument, self.media.meta_set, id=media['id'], key='mykey')
-        self.assertRaises(MissingArgument, self.media.meta_set, id=media['id'], value='myvalue')
-        self.assertRaises(MissingArgument, self.media.meta_set, id=media['id'])
+        self.assertRaises(MissingArgument, self.media.set_meta, id=media['id'], key='mykey')
+        self.assertRaises(MissingArgument, self.media.set_meta, id=media['id'], value='myvalue')
+        self.assertRaises(MissingArgument, self.media.set_meta, id=media['id'])
 
         # update value
-        res = self.media.meta_set(id=media['id'], key='mykey', value='value')
+        res = self.media.set_meta(id=media['id'], key='mykey', value='value')
         self.assertEqual(res, None)
 
         # unicode key/value
-        res = self.media.meta_set(id=media['id'], key=u'u_mykey', value=u'u_value')
+        res = self.media.set_meta(id=media['id'], key=u'u_mykey', value=u'u_value')
         self.assertEqual(res, None)
 
-        self.assertRaises(NotFound, self.media.meta_set, id='1'+media['id'][1:], key='theky', value='thevalue')
+        self.assertRaises(NotFound, self.media.set_meta, id='1'+media['id'][1:], key='theky', value='thevalue')
 
-    def test_media_meta_get(self):
+    def test_media_get_meta(self):
         media = self.media.create()
-        self.media.meta_set(id=media['id'], key='mykey', value='value')
+        self.media.set_meta(id=media['id'], key='mykey', value='value')
 
-        res = self.media.meta_get(id=media['id'], key='mykey')
+        res = self.media.get_meta(id=media['id'], key='mykey')
         self.assertEqual(type(res), dict)
         self.assertEqual(res.keys(), ['value'])
         self.assertEqual(res['value'], 'value')
 
-        self.assertRaises(NotFound, self.media.meta_get, id=media['id'], key='invalid_key')
-        self.assertRaises(NotFound, self.media.meta_get, id=media['id'], key=[])
+        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key='invalid_key')
+        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key=[])
 
         # update value
-        self.media.meta_set(id=media['id'], key='mykey', value='new_value')
-        res = self.media.meta_get(id=media['id'], key='mykey')
+        self.media.set_meta(id=media['id'], key='mykey', value='new_value')
+        res = self.media.get_meta(id=media['id'], key='mykey')
         self.assertEqual(type(res), dict)
         self.assertEqual(res.keys(), ['value'])
         self.assertEqual(res['value'], 'new_value')
 
         # unicode key/value
-        self.media.meta_set(id=media['id'], key=u'u_mykey', value=u'u_value')
-        res = self.media.meta_get(id=media['id'], key=u'u_mykey')
+        self.media.set_meta(id=media['id'], key=u'u_mykey', value=u'u_value')
+        res = self.media.get_meta(id=media['id'], key=u'u_mykey')
         self.assertEqual(type(res), dict)
         self.assertEqual(res.keys(), ['value'])
         self.assertEqual(res['value'], u'u_value')
 
-    def test_media_meta_remove(self):
+    def test_media_remove_meta(self):
         media = self.media.create()
-        self.media.meta_set(id=media['id'], key='mykey', value='value')
+        self.media.set_meta(id=media['id'], key='mykey', value='value')
 
-        res = self.media.meta_remove(id=media['id'], key='mykey')
+        res = self.media.remove_meta(id=media['id'], key='mykey')
         self.assertEqual(res, None)
         
-        self.assertRaises(NotFound, self.media.meta_remove, id=media['id'], key='mykey')
+        self.assertRaises(NotFound, self.media.remove_meta, id=media['id'], key='mykey')
 
-        self.assertRaises(NotFound, self.media.meta_get, id=media['id'], key='mykey')
+        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key='mykey')
 
-    def test_media_meta_list(self):
+    def test_media_list_meta(self):
         media = self.media.create()
-        res = self.media.meta_list(id=media['id'])
+        res = self.media.list_meta(id=media['id'])
         self.assertEqual(type(res), dict)
         self.assertEqual(len(res.keys()), 0)
 
         for i in range(10):
-            self.media.meta_set(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
+            self.media.set_meta(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
 
-        res = self.media.meta_list(id=media['id'])
+        res = self.media.list_meta(id=media['id'])
         self.assertEqual(type(res), dict)
         self.assertEqual(len(res.keys()), 10)
 
@@ -139,9 +139,9 @@ class MediaTestBase(unittest.TestCase):
             x += 1
             if x % 2:
                 for i in range(5):
-                    self.media.meta_set(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
+                    self.media.set_meta(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
             else:
-                self.media.meta_set(id=media['id'], key='mykey-1', value='42')
+                self.media.set_meta(id=media['id'], key='mykey-1', value='42')
 
         fields = ['meta.mykey-2', 'meta.mykey-3']
         filter = {'meta.mykey-1' : 'value-1'}
@@ -167,17 +167,17 @@ class MediaTestBase(unittest.TestCase):
         self.assertEqual(media_info['name'], 'my_funny_video')
         self.assertEqual('url' in media_info.keys(), True)
 
-    def test_media_asset_set(self):
+    def test_media_set_asset(self):
         media_info = self.media.upload('my_funny_video.3gp')
         media_url = media_info['url']
 
         media = self.media.create()
-        res = self.media.asset_set(id=media['id'], preset='source', url=media_url)
+        res = self.media.set_asset(id=media['id'], preset='source', url=media_url)
         self.assertEqual(res, None)
 
     def wait_for_asset(self, media_id, asset_name):
         while True:
-            asset = self.media.asset_get(id=media_id, preset=asset_name)
+            asset = self.media.get_asset(id=media_id, preset=asset_name)
             if asset['status'] != 'ready':
                 if asset['status'] == 'error':
                     #print 'Asset couldn\'t be downloaded!'
@@ -188,57 +188,57 @@ class MediaTestBase(unittest.TestCase):
             #print '%s ready' % asset_name
             return True
 
-    def test_media_asset_get(self):
+    def test_media_get_asset(self):
         media_info = self.media.upload('my_funny_video.3gp')
         media_url = media_info['url']
 
         media = self.media.create()
-        res = self.media.asset_set(id=media['id'], preset='source', url=media_url)
+        res = self.media.set_asset(id=media['id'], preset='source', url=media_url)
         
-        res = self.media.asset_get(id= media['id'], preset='source')
+        res = self.media.get_asset(id= media['id'], preset='source')
         self.assertEqual('status' in res.keys(), True)
         self.assertEqual(res['status'] in ('pending', 'processing'), True)
 
         res = self.wait_for_asset(media['id'], 'source')
         self.assertEqual(res, True)
-        res = self.media.asset_get(id=media['id'], preset='source')
+        res = self.media.get_asset(id=media['id'], preset='source')
         self.assertEqual('status' in res.keys(), True)
         self.assertEqual(res['status'], 'ready')
 
 
-    def wait_for_asset_remove(self, media_id, asset_name, timeout=10):
+    def wait_for_remove_asset(self, media_id, asset_name, timeout=10):
         for i in range(timeout):
             try:
-                self.media.asset_get(id=media_id, preset=asset_name)
+                self.media.get_asset(id=media_id, preset=asset_name)
             except NotFound, e:
                 return True
             time.sleep(1)
         else:
             return False
 
-    def test_media_asset_remove(self):
+    def test_media_remove_asset(self):
         media_info = self.media.upload('my_funny_video.3gp')
         media_url = media_info['url']
 
         media = self.media.create()
-        res = self.media.asset_set(id=media['id'], preset='source', url=media_url)
+        res = self.media.set_asset(id=media['id'], preset='source', url=media_url)
         res = self.wait_for_asset(media['id'], 'source')
         self.assertEqual(res, True)
 
-        res = self.media.asset_remove(id=media['id'], preset='source')
+        res = self.media.remove_asset(id=media['id'], preset='source')
         self.assertEqual(res, None)
-        res = self.wait_for_asset_remove(media['id'], 'source', 20)
+        res = self.wait_for_remove_asset(media['id'], 'source', 20)
         self.assertEqual(res, True)
 
-        self.media.asset_set(id=media['id'], preset='source', url=media_url)
-        res = self.media.asset_remove(id=media['id'], preset='source')
+        self.media.set_asset(id=media['id'], preset='source', url=media_url)
+        res = self.media.remove_asset(id=media['id'], preset='source')
         self.assertEqual(res, None)
 
-        res = self.wait_for_asset_remove(media['id'], 'source')
+        res = self.wait_for_remove_asset(media['id'], 'source')
         self.assertEqual(res, True)
-        res = self.wait_for_asset_remove(media['id'], 'source')
+        res = self.wait_for_remove_asset(media['id'], 'source')
         self.assertEqual(res, True)
-        self.assertRaises(NotFound, self.media.asset_get, id=media['id'], preset='source')
+        self.assertRaises(NotFound, self.media.get_asset, id=media['id'], preset='source')
 
 
 if __name__ == '__main__':
