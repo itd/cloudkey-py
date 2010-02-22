@@ -6,7 +6,7 @@ import simplejson as json
 
 from wapic import *
 
-from dcapi import newhttp
+from cloudkey import newhttp
 
 class Media(WApiC):
 

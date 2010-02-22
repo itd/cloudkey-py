@@ -1,12 +1,12 @@
 import unittest
 import os, time
 
-from dcapi.media import *
+from cloudkey.media import *
 
 class MediaTestBase(unittest.TestCase):
 
     def setUp(self):
-        self.media = Media('sebest', 'sebest', 'http://dk_api.sebest.dev.dailymotion.com')
+        self.media = Media('sebest', 'sebest', 'http://dc_api.sebest.dev.dailymotion.com')
         self.media.reset()
 
     def tearDown(self):

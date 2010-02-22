@@ -49,7 +49,7 @@ class WApiC(object):
             else:
                 path = method
             url = '%s/%s.json?%s' % (self.base_url, path, params)
-            print url
+#            print url
             try:
                 response = opener.open(url)
             except urllib2.HTTPError, e:

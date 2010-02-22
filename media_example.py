@@ -2,10 +2,10 @@
 
 import time, sys
 
-from dcapi.media import Media
+from cloudkey.media import Media
 
 # We connect to the api with our login/password
-media = Media('sebest', 'sebest', 'http://dk_api.sebest.dev.dailymotion.com')
+media = Media('sebest', 'sebest', 'http://dc_api.sebest.dev.dailymotion.com')
 
 # We upload one of our video
 
