@@ -240,6 +240,30 @@ class MediaTestBase(unittest.TestCase):
         self.assertEqual(res, True)
         self.assertRaises(NotFound, self.media.get_asset, id=media['id'], preset='source')
 
+    def test_media_process_asset(self):
+        media_info = self.media.upload('my_funny_video.3gp')
+        media_url = media_info['url']
+
+        media = self.media.create()
+        res = self.media.set_asset(id=media['id'], preset='source', url=media_url)
+        res = self.media.process_asset(id=media['id'], preset='flv_h263_mp3')
+        self.assertEqual(res, None)
+        res = self.media.process_asset(id=media['id'], preset='mp4_h264_aac')
+        self.assertEqual(res, None)
+        res = self.media.get_asset(id= media['id'], preset='flv_h263_mp3')
+        self.assertEqual(res['status'], 'pending')
+        res = self.media.get_asset(id= media['id'], preset='mp4_h264_aac')
+        self.assertEqual(res['status'], 'pending')
+        res = self.wait_for_asset(media['id'], 'flv_h263_mp3')
+        res = self.wait_for_asset(media['id'], 'mp4_h264_aac')
+        res = self.media.get_asset(id= media['id'], preset='flv_h263_mp3')
+        self.assertEqual(res['status'], 'ready')
+        self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
+        res = self.media.get_asset(id= media['id'], preset='mp4_h264_aac')
+        self.assertEqual(res['status'], 'ready')
+        self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
+        
+#        my_broken_video.avi
 
 if __name__ == '__main__':
     unittest.main()
