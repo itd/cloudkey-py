@@ -60,8 +60,11 @@ class WApiC(object):
                         raise InvalidMethod(method)
                     if result['status_code'] == 404 and result['type'] == 'ApiNotFound':
                         raise NotFound()
-                    elif result['status_code'] == 400 and result['type'] == 'ApiMissingParam':
-                        raise MissingArgument(result['message'])
+                    elif result['status_code'] == 400:
+                        if result['type'] == 'ApiMissingParam':
+                            raise MissingArgument(result['message'])
+                        elif result['type'] == 'ApiInvalidParam':
+                            raise InvalidArgument(result['message'])
                 elif e.code in (204,):
                     return None
                 raise WApiCException(e)

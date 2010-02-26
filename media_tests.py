@@ -1,36 +1,21 @@
+USERNAME='root'
+PASSWORD='sebest'
+BASE_URL='http://serveur-07.dc.dailymotion.com'
+
 import unittest
 import os, time
 
 from cloudkey.media import *
 
-class MediaTestBase(unittest.TestCase):
-
+class MediaTestDelete(unittest.TestCase):
     def setUp(self):
-        self.media = Media('sebest', 'sebest', 'http://dc_api.sebest.dev.dailymotion.com')
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
         self.media.reset()
 
     def tearDown(self):
         pass
 
-    def test_media_create(self):
-        media = self.media.create()
-
-        self.assertEqual(type(media), dict)
-        self.assertEqual(media.keys(), ['id'])
-        self.assertEqual(len(media['id']), 24)
-
-    def test_media_info(self):
-        media = self.media.create()
-        res = self.media.info(id=media['id'])
-
-        self.assertEqual(type(res), dict)
-        self.assertEqual(res.keys(), ['id'])
-        self.assertEqual(len(res['id']), 24)
-
-# TODO       self.assertRaises(InvalidArgument,  self.media.info, id=media['id'][:-2])
-        self.assertRaises(NotFound,  self.media.info, id=media['id'][:-2])
-
-    def test_media_delete(self):
+    def test_delete(self):
         media = self.media.create()
         res = self.media.delete(id=media['id'])
 
@@ -38,72 +23,127 @@ class MediaTestBase(unittest.TestCase):
 
         self.assertRaises(NotFound, self.media.info, id=media['id'])
 
-        self.assertRaises(NotFound, self.media.delete, id=media['id'])
+    def test_media_not_found(self):
+        self.assertRaises(NotFound, self.media.delete, id='1b87186c84e1b015a0000000')
 
-        self.assertRaises(NotFound, self.media.delete, id='1'+media['id'][1:])
+    def test_invalid_media_id(self):
+        self.assertRaises(InvalidArgument, self.media.delete, id='b87186c84e1b015a0000000')
 
-    def test_media_set_meta(self):
+class MediaTestInfo(unittest.TestCase):
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        pass
+
+    def test_info(self):
+        media = self.media.create()
+        res = self.media.info(id=media['id'])
+
+        self.assertEqual(type(res), dict)
+        self.assertEqual(res.keys(), ['id'])
+        self.assertEqual(len(res['id']), 24)
+
+    def test_media_not_found(self):
+        self.assertRaises(NotFound, self.media.info, id='1b87186c84e1b015a0000000')
+
+    def test_invalid_media_id(self):
+        self.assertRaises(InvalidArgument, self.media.info, id='b87186c84e1b015a0000000')
+
+class MediaTestCreate(unittest.TestCase):
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        pass
+
+    def test_create(self):
         media = self.media.create()
 
-        res = self.media.set_meta(id=media['id'], key='mykey', value='value')
+        self.assertEqual(type(media), dict)
+        self.assertEqual(media.keys(), ['id'])
+        self.assertEqual(len(media['id']), 24)
+
+class MediaTestMeta(unittest.TestCase):
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        pass
+
+    def test_set_get(self):
+        media = self.media.create()
+        res = self.media.set_meta(id=media['id'], key='mykey', value='my_value')
         self.assertEqual(res, None)
+
+        res = self.media.get_meta(id=media['id'], key='mykey')
+        self.assertEqual(type(res), dict)
+        self.assertEqual(res.keys(), ['value'])
+        self.assertEqual(res['value'], 'my_value')
+
+    def test_media_not_found(self):
+        self.assertRaises(NotFound, self.media.set_meta, 
+                          id='1b87186c84e1b015a0000000', key='mykey', value='my_value')
+
+    def test_invalid_media_id(self):
+        self.assertRaises(InvalidArgument, self.media.set_meta, 
+                          id='b87186c84e1b015a0000000', key='mykey', value='my_value')
+
+    def test_missing_argument(self):
+        media = self.media.create()
 
         self.assertRaises(MissingArgument, self.media.set_meta, id=media['id'], key='mykey')
         self.assertRaises(MissingArgument, self.media.set_meta, id=media['id'], value='myvalue')
         self.assertRaises(MissingArgument, self.media.set_meta, id=media['id'])
+        self.assertRaises(MissingArgument, self.media.get_meta, id=media['id'])
+        self.assertRaises(MissingArgument, self.media.remove_meta, id=media['id'])
 
-        # update value
+    def test_set_meta_update(self):
+        media = self.media.create()
+
         res = self.media.set_meta(id=media['id'], key='mykey', value='value')
         self.assertEqual(res, None)
 
-        # unicode key/value
+        res = self.media.set_meta(id=media['id'], key='mykey', value='my_new_value')
+        self.assertEqual(res, None)
+
+        res = self.media.get_meta(id=media['id'], key='mykey')
+        self.assertEqual(type(res), dict)
+        self.assertEqual(res.keys(), ['value'])
+        self.assertEqual(res['value'], 'my_new_value')
+
+    def test_set_meta_unicode(self):
+        media = self.media.create()
+
         res = self.media.set_meta(id=media['id'], key=u'u_mykey', value=u'u_value')
         self.assertEqual(res, None)
 
-        self.assertRaises(NotFound, self.media.set_meta, id='1'+media['id'][1:], key='theky', value='thevalue')
-
-    def test_media_get_meta(self):
-        media = self.media.create()
-        self.media.set_meta(id=media['id'], key='mykey', value='value')
-
-        res = self.media.get_meta(id=media['id'], key='mykey')
-        self.assertEqual(type(res), dict)
-        self.assertEqual(res.keys(), ['value'])
-        self.assertEqual(res['value'], 'value')
-
-        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key='invalid_key')
-        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key=[])
-
-        # update value
-        self.media.set_meta(id=media['id'], key='mykey', value='new_value')
-        res = self.media.get_meta(id=media['id'], key='mykey')
-        self.assertEqual(type(res), dict)
-        self.assertEqual(res.keys(), ['value'])
-        self.assertEqual(res['value'], 'new_value')
-
-        # unicode key/value
-        self.media.set_meta(id=media['id'], key=u'u_mykey', value=u'u_value')
         res = self.media.get_meta(id=media['id'], key=u'u_mykey')
         self.assertEqual(type(res), dict)
         self.assertEqual(res.keys(), ['value'])
-        self.assertEqual(res['value'], u'u_value')
+        self.assertEqual(res['value'], 'u_value')
 
-    def test_media_remove_meta(self):
+    def test_meta_not_found(self):
         media = self.media.create()
-        self.media.set_meta(id=media['id'], key='mykey', value='value')
 
-        res = self.media.remove_meta(id=media['id'], key='mykey')
-        self.assertEqual(res, None)
-        
-        self.assertRaises(NotFound, self.media.remove_meta, id=media['id'], key='mykey')
+        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key='invalid_key')
+        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key=[])
+        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key=100)
 
-        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key='mykey')
-
-    def test_media_list_meta(self):
+    def test_invalid_key(self):
         media = self.media.create()
+
+        #self.media.get_meta(id=media['id'], key=100)
+
+    def test_list(self):
+        media = self.media.create()
+
         res = self.media.list_meta(id=media['id'])
         self.assertEqual(type(res), dict)
-        self.assertEqual(len(res.keys()), 0)
+        self.assertEqual(len(res), 0)
 
         for i in range(10):
             self.media.set_meta(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
@@ -115,57 +155,25 @@ class MediaTestBase(unittest.TestCase):
         for i in range(10):
             self.assertEqual(res['mykey-%d' %i], 'value-%d' % i)
 
-    def test_media_list(self):
-        res = self.media.list()
-        self.assertEqual(res, [])
+    def test_remove(self):
+        media = self.media.create()
+        self.media.set_meta(id=media['id'], key='mykey', value='value')
 
-        medias = []
-        for i in range(25):
-            medias.append(self.media.create())
-        res = self.media.list()
-        self.assertEqual(res, medias)
+        res = self.media.remove_meta(id=media['id'], key='mykey')
+        self.assertEqual(res, None)
+        
+        self.assertRaises(NotFound, self.media.remove_meta, id=media['id'], key='mykey')
+        self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key='mykey')
 
-        res = self.media.list(page=1)
-        self.assertEqual(res, medias[:10])
+class MediaTestAsset(unittest.TestCase):
+#class MediaTestAsset(object):
 
-        res = self.media.list(page=2)
-        self.assertEqual(res, medias[10:20])
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
 
-        res = self.media.list(page=2, count=6)
-        self.assertEqual(res, medias[6:12])
-
-        x = 0
-        for media in medias:
-            x += 1
-            if x % 2:
-                for i in range(5):
-                    self.media.set_meta(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
-            else:
-                self.media.set_meta(id=media['id'], key='mykey-1', value='42')
-
-        fields = ['meta.mykey-2', 'meta.mykey-3']
-        filter = {'meta.mykey-1' : 'value-1'}
-        res = self.media.list(fields=fields, filter=filter)
-        self.assertEqual(len(res), 13)
-
-        for i in res:
-            self.assertEqual(len(i.keys()), 2)
-            self.assertEqual(i['meta'].get('mykey-2'), 'value-2')
-            self.assertEqual(i['meta'].get('mykey-3'), 'value-3')
-            self.assertEqual(i['meta'].get('mykey-1'), None)
-
-        filter = {'meta.mykey-1' : '42'}
-        res = self.media.list(filter=filter)
-        self.assertEqual(len(res), 12)
-        for i in res:
-            self.assertEqual(len(i.keys()), 1)
-            self.assertEqual(i.keys(), ['id'])
-
-    def test_media_upload(self):
-        media_info = self.media.upload('my_funny_video.3gp')
-        self.assertEqual(media_info['size'], 92545)
-        self.assertEqual(media_info['name'], 'my_funny_video')
-        self.assertEqual('url' in media_info.keys(), True)
+    def tearDown(self):
+        pass
 
     def test_media_set_asset(self):
         media_info = self.media.upload('my_funny_video.3gp')
@@ -264,6 +272,111 @@ class MediaTestBase(unittest.TestCase):
         self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
         
 #        my_broken_video.avi
+
+class MediaTestFileUpload(unittest.TestCase):
+#class MediaTestFileUpload(object):
+
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        pass
+
+    def test_file_upload(self):
+        # status url
+        res = self.media.file__upload()
+        self.assertEqual('url' in res.keys(), True)
+
+    def test_media_upload(self):
+        media_info = self.media.upload('my_funny_video.3gp')
+        self.assertEqual(media_info['size'], 92545)
+        self.assertEqual(media_info['name'], 'my_funny_video')
+        self.assertEqual('url' in media_info.keys(), True)
+
+class MediaTestList(unittest.TestCase):
+
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        pass
+
+    def test_empty_list(self):
+        res = self.media.list()
+        self.assertEqual(res, [])
+
+    def test_list(self):
+        medias = []
+        for i in range(25):
+            medias.append(self.media.create())
+        res = self.media.list()
+        self.assertEqual(res, medias)
+
+    def test_pagination(self):
+        medias = []
+        for i in range(25):
+            medias.append(self.media.create())
+
+        res = self.media.list(page=1)
+        self.assertEqual(res, medias[:10])
+
+        res = self.media.list(page=2)
+        self.assertEqual(res, medias[10:20])
+
+        res = self.media.list(page=2, count=6)
+        self.assertEqual(res, medias[6:12])
+
+    def test_fields_filter(self):
+        medias = []
+        for i in range(25):
+            medias.append(self.media.create())
+
+        x = 0
+        for media in medias:
+            x += 1
+            if x % 2:
+                for i in range(5):
+                    self.media.set_meta(id=media['id'], key='mykey-%d' % i, value='value-%d' % i)
+            else:
+                self.media.set_meta(id=media['id'], key='mykey-1', value='42')
+
+        fields = ['meta.mykey-2', 'meta.mykey-3']
+        filter = {'meta.mykey-1' : 'value-1'}
+        res = self.media.list(fields=fields, filter=filter)
+        self.assertEqual(len(res), 13)
+
+        for i in res:
+            self.assertEqual(len(i.keys()), 2)
+            self.assertEqual(i['meta'].get('mykey-2'), 'value-2')
+            self.assertEqual(i['meta'].get('mykey-3'), 'value-3')
+            self.assertEqual(i['meta'].get('mykey-1'), None)
+
+        filter = {'meta.mykey-1' : '42'}
+        res = self.media.list(filter=filter)
+        self.assertEqual(len(res), 12)
+        for i in res:
+            self.assertEqual(len(i.keys()), 1)
+            self.assertEqual(i.keys(), ['id'])
+
+
+class MediaTestBase(unittest.TestCase):
+
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        pass
+
+    def test_media_create(self):
+        media = self.media.create()
+
+        self.assertEqual(type(media), dict)
+        self.assertEqual(media.keys(), ['id'])
+        self.assertEqual(len(media['id']), 24)
+
 
 if __name__ == '__main__':
     unittest.main()
