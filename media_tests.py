@@ -288,6 +288,17 @@ class MediaTestFileUpload(unittest.TestCase):
         res = self.media.file__upload()
         self.assertEqual('url' in res.keys(), True)
 
+    def test_file_upload_target(self):
+        mytarget='http://www.example.com/myform'
+        res = self.media.file__upload(target=mytarget)
+        self.assertEqual('url' in res.keys(), True)
+        import urlparse
+        parsed =urlparse.urlparse(res['url'])
+        myqs = urlparse.parse_qs(parsed.query)
+        self.assertEqual(myqs.keys() , ['seal', 'uuid', 'target', ])
+        self.assertEqual(myqs['target'][0] , mytarget)
+
+
     def test_media_upload(self):
         media_info = self.media.upload('my_funny_video.3gp')
         self.assertEqual(media_info['size'], 92545)
@@ -327,6 +338,33 @@ class MediaTestList(unittest.TestCase):
 
         res = self.media.list(page=2, count=6)
         self.assertEqual(res, medias[6:12])
+
+    def test_invalid_filter(self):
+        medias = []
+        for i in range(5):
+            medias.append(self.media.create())
+
+        self.assertRaises(InvalidArgument, self.media.list, 
+                          filter = { '$where' : "this.a > 3" })
+
+        self.assertRaises(InvalidArgument, self.media.list, 
+                          filter = "this.a > 3")
+
+    def test_invalid_fields(self):
+        medias = []
+        for i in range(5):
+            medias.append(self.media.create())
+
+        self.assertRaises(InvalidArgument, self.media.list, 
+                          fields = "this.a")
+
+    def test_invalid_sort(self):
+        medias = []
+        for i in range(5):
+            medias.append(self.media.create())
+
+        self.assertRaises(InvalidArgument, self.media.list, 
+                          fields = "this.a")
 
     def test_fields_filter(self):
         medias = []
