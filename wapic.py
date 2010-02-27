@@ -24,23 +24,23 @@ class WApiC(object):
         else:
             self.namespace = namespace
 
+        password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        password_mgr.add_password(None, self.base_url, self.login, self.password)
+        auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+
+        if self.proxy:
+            proxy_handler = urllib2.ProxyHandler({'http': self.proxt})
+            self.opener = urllib2.build_opener(auth_handler, proxy_handler)
+        else:
+            self.opener = urllib2.build_opener(auth_handler)
+
     def __getattr__(self, method):
 
         def handler(**kwargs):
-            password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-            password_mgr.add_password(None, self.base_url, self.login, self.password)
-            auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
-
             for k, v in kwargs.copy().items():
                 if type(v) not in (str, unicode, int, float):
                     kwargs[k] = json.dumps(v)
             params = urllib.urlencode(kwargs)
-
-            if self.proxy:
-                proxy_handler = urllib2.ProxyHandler({'http': self.proxt})
-                opener = urllib2.build_opener(auth_handler, proxy_handler)
-            else:
-                opener = urllib2.build_opener(auth_handler)
 
             if '__' in method:
                 path = method.replace('__', '/')
@@ -49,9 +49,9 @@ class WApiC(object):
             else:
                 path = method
             url = '%s/%s.json?%s' % (self.base_url, path, params)
-#            print url
+            #print url
             try:
-                response = opener.open(url)
+                response = self.opener.open(url)
             except urllib2.HTTPError, e:
                 if e.code in (404, 400):
                     try:
