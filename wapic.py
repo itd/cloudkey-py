@@ -36,22 +36,23 @@ class WApiC(object):
 
     def __getattr__(self, method):
 
+        if '__' in method:
+            path = method.replace('__', '/')
+        elif self.namespace:
+            path = self.namespace + '/' + method
+        else:
+            path = method
+        url = '%s/%s.json?' % (self.base_url, path)
+
         def handler(**kwargs):
             for k, v in kwargs.copy().items():
                 if type(v) not in (str, unicode, int, float):
                     kwargs[k] = json.dumps(v)
             params = urllib.urlencode(kwargs)
 
-            if '__' in method:
-                path = method.replace('__', '/')
-            elif self.namespace:
-                path = self.namespace + '/' + method
-            else:
-                path = method
-            url = '%s/%s.json?%s' % (self.base_url, path, params)
-            #print url
             try:
-                response = self.opener.open(url)
+                #print url + params
+                response = self.opener.open(url + params)
             except urllib2.HTTPError, e:
                 if e.code in (404, 400):
                     try:

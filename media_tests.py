@@ -1,5 +1,5 @@
-USERNAME='root'
-PASSWORD='sebest'
+USERNAME='test'
+PASSWORD='test'
 BASE_URL='http://serveur-07.dc.dailymotion.com'
 
 import unittest
@@ -242,8 +242,6 @@ class MediaTestAsset(unittest.TestCase):
         res = self.media.remove_asset(id=media['id'], preset='source')
         self.assertEqual(res, None)
 
-        res = self.wait_for_remove_asset(media['id'], 'source')
-        self.assertEqual(res, True)
         res = self.wait_for_remove_asset(media['id'], 'source')
         self.assertEqual(res, True)
         self.assertRaises(NotFound, self.media.get_asset, id=media['id'], preset='source')
