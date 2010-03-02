@@ -271,6 +271,49 @@ class MediaTestAsset(unittest.TestCase):
         
 #        my_broken_video.avi
 
+class MediaTestPublish(unittest.TestCase):
+#class MediaTestPublish(object):
+
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+        self.media_info = self.media.upload('my_funny_video.3gp')
+        self.media_url = self.media_info['url']
+
+    def tearDown(self):
+        pass
+
+    def test_publish(self):
+        presets = ['flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld']
+
+        media = self.media.publish(url=self.media_url, presets=presets)
+
+        for preset in presets:
+            res = self.media.get_asset(id= media['id'], preset=preset)
+            self.assertEqual(res['status'], 'pending')
+
+        for preset in presets:
+            res = self.wait_for_asset(media['id'], preset)
+
+        for preset in presets:
+            res = self.media.get_asset(id= media['id'], preset=preset)
+            self.assertEqual(res['status'], 'ready')
+            self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
+
+    def wait_for_asset(self, media_id, asset_name):
+        while True:
+            asset = self.media.get_asset(id=media_id, preset=asset_name)
+            if asset['status'] != 'ready':
+                if asset['status'] == 'error':
+                    #print 'Asset couldn\'t be downloaded!'
+                    return False
+                #print '%s not ready: %s' % (asset_name, asset['status'])
+                time.sleep(5)
+                continue
+            #print '%s ready' % asset_name
+            return True
+
+
 class MediaTestFileUpload(unittest.TestCase):
 #class MediaTestFileUpload(object):
 
