@@ -488,5 +488,38 @@ class MediaTestBase(unittest.TestCase):
         self.assertEqual(len(media['id']), 24)
 
 
+class MediaTestAuth(unittest.TestCase):
+
+    def test_anonymous(self):
+        media = Media('john', 'doe', BASE_URL)
+        self.assertRaises(AuthorizationRequired, media.whoami)
+
+    def test_normal_user(self):
+        media = Media('test', 'test', BASE_URL)
+        res = media.whoami()
+        self.assertEqual(res['username'], 'test')
+
+    def test_normal_user_su(self):
+        media = Media('test', 'test', BASE_URL)
+        media.act_as_user('sebest')
+        res = media.whoami()
+        self.assertEqual(res['username'], 'test')
+
+    def test_super_user(self):
+        media = Media('root', 'test', BASE_URL)
+        res = media.whoami()
+        self.assertEqual(res['username'], 'root')
+
+    def test_normal_user_su(self):
+        media = Media('root', 'test', BASE_URL)
+        media.act_as_user('sebest')
+        res = media.whoami()
+        self.assertEqual(res['username'], 'sebest')
+
+    def test_normal_user_su_wrong_user(self):
+        media = Media('root', 'test', BASE_URL)
+        media.act_as_user('johndoe')
+        self.assertRaises(AuthorizationRequired, media.whoami)
+
 if __name__ == '__main__':
     unittest.main()

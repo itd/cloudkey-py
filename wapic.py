@@ -6,6 +6,7 @@ import urllib2
 import simplejson as json
 
 class WApiCException(Exception): pass
+class AuthorizationRequired(WApiCException): pass
 class NotFound(WApiCException): pass
 class MissingArgument(WApiCException): pass
 class InvalidArgument(WApiCException): pass
@@ -19,6 +20,7 @@ class WApiC(object):
         self.password = password
         self.base_url = base_url
         self.proxy = proxy
+        self.extra_params = {}
         if self.__class__.__name__ != 'WApiC' and not namespace:
             self.namespace = self.__class__.__name__.lower()
         else:
@@ -48,6 +50,7 @@ class WApiC(object):
             for k, v in kwargs.copy().items():
                 if type(v) not in (str, unicode, int, float):
                     kwargs[k] = json.dumps(v)
+            kwargs.update(self.extra_params)
             params = urllib.urlencode(kwargs)
 
             try:
@@ -66,6 +69,8 @@ class WApiC(object):
                             raise MissingArgument(result['message'])
                         elif result['type'] == 'ApiInvalidParam':
                             raise InvalidArgument(result['message'])
+                elif e.code == 401:
+                    raise AuthorizationRequired()
                 elif e.code in (204,):
                     return None
                 raise WApiCException(e)
