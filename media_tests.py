@@ -182,18 +182,20 @@ class MediaTestAsset(unittest.TestCase):
         res = self.media.set_asset(id=media['id'], preset='source', url=media_url)
         self.assertEqual(res, None)
 
-    def wait_for_asset(self, media_id, asset_name):
-        while True:
+    def wait_for_asset(self, media_id, asset_name, wait=60):
+        for i in range(wait):
             asset = self.media.get_asset(id=media_id, preset=asset_name)
+            #print asset
             if asset['status'] != 'ready':
                 if asset['status'] == 'error':
                     #print 'Asset couldn\'t be downloaded!'
                     return False
                 #print '%s not ready: %s' % (asset_name, asset['status'])
-                time.sleep(5)
+                time.sleep(1)
                 continue
             #print '%s ready' % asset_name
             return True
+        raise Exception('timeout exceeded')
 
     def test_media_get_asset(self):
         media_info = self.media.upload('my_funny_video.3gp')
@@ -221,7 +223,7 @@ class MediaTestAsset(unittest.TestCase):
                 return True
             time.sleep(1)
         else:
-            return False
+            raise Exception('timeout exceeded')
 
     def test_media_remove_asset(self):
         media_info = self.media.upload('my_funny_video.3gp')
@@ -260,7 +262,9 @@ class MediaTestAsset(unittest.TestCase):
         res = self.media.get_asset(id= media['id'], preset='mp4_h264_aac')
         self.assertEqual(res['status'], 'pending')
         res = self.wait_for_asset(media['id'], 'flv_h263_mp3')
+        self.assertEqual(res, True)
         res = self.wait_for_asset(media['id'], 'mp4_h264_aac')
+        self.assertEqual(res, True)
         res = self.media.get_asset(id= media['id'], preset='flv_h263_mp3')
         self.assertEqual(res['status'], 'ready')
         self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
@@ -324,13 +328,14 @@ class MediaTestPublish(unittest.TestCase):
     
         for preset in presets:
             res = self.wait_for_asset(media['id'], preset, 10)
+            self.assertEqual(res, False)
 
         for preset in presets:
             res = self.media.get_asset(id= media['id'], preset=preset)
             self.assertEqual(res['status'], 'error')
             self.assertEqual(res.keys() == ['status'], True)
 
-    def wait_for_asset(self, media_id, asset_name, wait=120):
+    def wait_for_asset(self, media_id, asset_name, wait=60):
         for i in range(wait):
             asset = self.media.get_asset(id=media_id, preset=asset_name)
             #print asset
@@ -343,7 +348,7 @@ class MediaTestPublish(unittest.TestCase):
                 continue
             #print '%s ready' % asset_name
             return True
-        return False
+        raise Exception('timeout exceeded')
 
 
 class MediaTestFileUpload(unittest.TestCase):
@@ -510,13 +515,13 @@ class MediaTestAuth(unittest.TestCase):
         res = media.whoami()
         self.assertEqual(res['username'], 'root')
 
-    def test_normal_user_su(self):
+    def test_super_user_su(self):
         media = Media('root', 'test', BASE_URL)
         media.act_as_user('sebest')
         res = media.whoami()
         self.assertEqual(res['username'], 'sebest')
 
-    def test_normal_user_su_wrong_user(self):
+    def test_super_user_su_wrong_user(self):
         media = Media('root', 'test', BASE_URL)
         media.act_as_user('johndoe')
         self.assertRaises(AuthorizationRequired, media.whoami)

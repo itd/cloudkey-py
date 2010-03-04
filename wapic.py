@@ -3,6 +3,7 @@
 
 import urllib
 import urllib2
+import base64
 import simplejson as json
 
 class WApiCException(Exception): pass
@@ -15,7 +16,8 @@ class InvalidMethod(WApiCException): pass
 
 class WApiC(object):
 
-    def __init__(self, login, password, base_url, namespace=None, proxy=None):
+    def __init__(self, login, password, base_url, namespace=None, proxy=None, force_auth=True):
+
         self.login = login
         self.password = password
         self.base_url = base_url
@@ -36,15 +38,11 @@ class WApiC(object):
         else:
             self.opener = urllib2.build_opener(auth_handler)
 
-    def __getattr__(self, method):
+        self.force_auth = force_auth
+        if force_auth:
+            self.headers = {"Authorization": "Basic " + base64.encodestring('%s:%s' % (self.login, self.password))[:-1]}
 
-        if '__' in method:
-            path = method.replace('__', '/')
-        elif self.namespace:
-            path = self.namespace + '/' + method
-        else:
-            path = method
-        url = '%s/%s.json?' % (self.base_url, path)
+    def __getattr__(self, method):
 
         def handler(**kwargs):
             for k, v in kwargs.copy().items():
@@ -53,9 +51,20 @@ class WApiC(object):
             kwargs.update(self.extra_params)
             params = urllib.urlencode(kwargs)
 
+            if '__' in method:
+                path = method.replace('__', '/')
+            elif self.namespace:
+                path = self.namespace + '/' + method
+            else:
+                path = method
+            url = '%s/%s.json?' % (self.base_url, path)
+
+            url = url + params
+            #print url
+            if self.force_auth:
+                url = urllib2.Request(url, headers=self.headers)
             try:
-                #print url + params
-                response = self.opener.open(url + params)
+                response = self.opener.open(url)
             except urllib2.HTTPError, e:
                 if e.code in (404, 400):
                     try:
