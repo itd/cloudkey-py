@@ -57,7 +57,7 @@ class WApiC(object):
                 path = self.namespace + '/' + method
             else:
                 path = method
-            url = '%s/%s.json?' % (self.base_url, path)
+            url = '%s/json/%s?' % (self.base_url, path)
 
             url = url + params
             #print url
