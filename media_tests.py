@@ -13,7 +13,7 @@ class MediaTestDelete(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_delete(self):
         media = self.media.create()
@@ -35,7 +35,7 @@ class MediaTestInfo(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_info(self):
         media = self.media.create()
@@ -57,7 +57,7 @@ class MediaTestCreate(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_create(self):
         media = self.media.create()
@@ -72,7 +72,7 @@ class MediaTestMeta(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_set_get(self):
         media = self.media.create()
@@ -172,7 +172,7 @@ class MediaTestAsset(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_media_set_asset(self):
         media_info = self.media.upload('my_funny_video.3gp')
@@ -267,10 +267,10 @@ class MediaTestAsset(unittest.TestCase):
         self.assertEqual(res, True)
         res = self.media.get_asset(id= media['id'], preset='flv_h263_mp3')
         self.assertEqual(res['status'], 'ready')
-        self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
+        self.assertEqual(set(res.keys()), set(['status', 'duration', 'filesize']))
         res = self.media.get_asset(id= media['id'], preset='mp4_h264_aac')
         self.assertEqual(res['status'], 'ready')
-        self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
+        self.assertEqual(set(res.keys()), set(['status', 'duration', 'filesize']))
         
 #        my_broken_video.avi
 
@@ -281,7 +281,7 @@ class MediaTestPublish(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_publish(self):
         media_info = self.media.upload('my_funny_video.3gp')
@@ -301,7 +301,7 @@ class MediaTestPublish(unittest.TestCase):
         for preset in presets:
             res = self.media.get_asset(id= media['id'], preset=preset)
             self.assertEqual(res['status'], 'ready')
-            self.assertEqual(res.keys() == ['status', 'duration', 'filesize'], True)
+            self.assertEqual(set(res.keys()), set(['status', 'duration', 'filesize']))
 
     def test_publish_source_error(self):
         media_info = self.media.upload('my_broken_video.avi')
@@ -317,7 +317,7 @@ class MediaTestPublish(unittest.TestCase):
         for preset in presets:
             res = self.media.get_asset(id= media['id'], preset=preset)
             self.assertEqual(res['status'], 'error')
-            self.assertEqual(res.keys() == ['status'], True)
+            self.assertEqual(res.keys(), ['status'])
 
     def test_publish_url_error(self):
         media_url = 'http://localhost/'
@@ -333,12 +333,11 @@ class MediaTestPublish(unittest.TestCase):
         for preset in presets:
             res = self.media.get_asset(id= media['id'], preset=preset)
             self.assertEqual(res['status'], 'error')
-            self.assertEqual(res.keys() == ['status'], True)
+            self.assertEqual(res.keys(), ['status'])
 
     def wait_for_asset(self, media_id, asset_name, wait=60):
         for i in range(wait):
             asset = self.media.get_asset(id=media_id, preset=asset_name)
-            #print asset
             if asset['status'] != 'ready':
                 if asset['status'] == 'error':
                     #print 'Asset couldn\'t be downloaded!'
@@ -358,7 +357,7 @@ class MediaTestFileUpload(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_file_upload(self):
         # status url
@@ -389,7 +388,7 @@ class MediaTestList(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_empty_list(self):
         res = self.media.list()
@@ -483,7 +482,7 @@ class MediaTestBase(unittest.TestCase):
         self.media.reset()
 
     def tearDown(self):
-        pass
+        self.media.reset()
 
     def test_media_create(self):
         media = self.media.create()
