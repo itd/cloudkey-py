@@ -10,6 +10,24 @@ from cloudkey import newhttp
 
 class Media(WApiC):
 
+    def __init__(self, *args, **kwargs):
+        super(Media, self).__init__(*args, **kwargs)
+        self._whoami = None
+
+    def whoami(self):
+        if not self._whoami:
+            self._whoami = self.user__whoami()
+        return self._whoami
+
+    def get_asset_url(self, id, preset):
+        user_id = self.whoami()['id']
+
+        if preset.rsplit('_', 1)[0] == 'jpeg_thumbnail':
+            base_url = "http://static.dmcloud.net"
+        else:
+            base_url = "http://cdndirector.dmcloud.net/route"
+        return "%s/%s/%s/%s.%s" % (base_url, user_id, id, preset, preset.split('_', 1)[0])
+
     def act_as_user(self, user):
         self.extra_params['__user__'] = user
         return self

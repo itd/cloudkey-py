@@ -1,6 +1,6 @@
 USERNAME='test'
 PASSWORD='test'
-BASE_URL='http://serveur-07.dc.dailymotion.com'
+BASE_URL='http://api.dmcloud.net'
 
 import unittest
 import os, time
@@ -165,6 +165,40 @@ class MediaTestMeta(unittest.TestCase):
         self.assertRaises(NotFound, self.media.remove_meta, id=media['id'], key='mykey')
         self.assertRaises(NotFound, self.media.get_meta, id=media['id'], key='mykey')
 
+class MediaTestAssetUrl(unittest.TestCase):
+
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        self.media.reset()
+
+    def test_media_get_asset_url_preview(self):
+        preset = 'jpeg_thumbnail_small'
+
+        media_id = self.media.create()['id']
+        url = self.media.get_asset_url(id=media_id, preset=preset)
+        import urlparse
+        parsed = urlparse.urlparse(url)
+        self.assertEqual(parsed.netloc, 'static.dmcloud.net')
+        spath = parsed.path.split('/')
+        self.assertEqual(len(spath), 4)
+        self.assertEqual(spath[3].split('.')[0], preset)
+
+    def test_media_get_asset_url_video(self):
+        preset = 'mp4_h264_aac'
+
+        media_id = self.media.create()['id']
+        url = self.media.get_asset_url(id=media_id, preset=preset)
+        import urlparse
+        parsed = urlparse.urlparse(url)
+        self.assertEqual(parsed.netloc, 'cdndirector.dmcloud.net')
+        spath = parsed.path.split('/')
+        self.assertEqual(len(spath), 5)
+        self.assertEqual(spath[4].split('.')[0], preset)
+        self.assertEqual(spath[1], 'route')
+
 class MediaTestAsset(unittest.TestCase):
 
     def setUp(self):
@@ -287,7 +321,7 @@ class MediaTestPublish(unittest.TestCase):
         media_info = self.media.upload('my_funny_video.3gp')
         media_url = media_info['url']
 
-        presets = ['flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld']
+        presets = ['flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld', 'jpeg_thumbnail_small', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_large']
 
         media = self.media.publish(url=media_url, presets=presets)
 
@@ -347,6 +381,7 @@ class MediaTestPublish(unittest.TestCase):
                 continue
             #print '%s ready' % asset_name
             return True
+        #print self.media.list_asset()
         raise Exception('timeout exceeded')
 
 
@@ -369,7 +404,7 @@ class MediaTestFileUpload(unittest.TestCase):
         res = self.media.file__upload(target=mytarget)
         self.assertEqual('url' in res.keys(), True)
         import urlparse
-        parsed =urlparse.urlparse(res['url'])
+        parsed = urlparse.urlparse(res['url'])
         myqs = urlparse.parse_qs(parsed.query)
         self.assertEqual(myqs.keys() , ['seal', 'uuid', 'target', ])
         self.assertEqual(myqs['target'][0] , mytarget)

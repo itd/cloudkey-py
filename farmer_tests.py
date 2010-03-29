@@ -1,6 +1,6 @@
 USERNAME='admin'
 PASSWORD='admin'
-BASE_URL='http://serveur-10.dc.dailymotion.com'
+BASE_URL='http://api.dmcloud.net'
 FARM='test_farm'
 
 import unittest
