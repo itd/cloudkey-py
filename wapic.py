@@ -4,7 +4,11 @@
 import urllib
 import urllib2
 import base64
-import simplejson as json
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 class WApiCException(Exception): pass
 class AuthorizationRequired(WApiCException): pass

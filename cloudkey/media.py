@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import urllib2
-import simplejson as json
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 from wapic import *
 
@@ -53,4 +57,3 @@ class Media(WApiC):
         response = opener.open(url, params)
         result = json.loads(response.read())
         return result
-
