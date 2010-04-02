@@ -5,8 +5,11 @@ import time, sys
 from cloudkey.media import Media
 
 # We connect to the api with our login/password
-media = Media('sebest', 'sebest', 'http://dc_api.sebest.dev.dailymotion.com')
+media = Media('test', 'test', 'http://api.dmcloud.net')
 
+#
+# Adding media
+#
 # We upload one of our video
 
 # We can have a callback to see the progress of the upload
@@ -50,7 +53,30 @@ media.process_asset(id=media_id, preset='mp4_h264_aac')
 
 wait_for_asset(media_id, 'flv_h263_mp3')
 wait_for_asset(media_id, 'mp4_h264_aac')
-#sys.exit(0)
+
+# There is a quicker way to publish a video 
+# we use the publish method to set some meta and encode the media in 2 presets
+media_ = media.publish(url=media_url, presets=['flv_h263_mp3', 'mp4_h264_aac'], meta={'title' : media_title, 'author' : 'John Doe' })
+
+# we get the media id
+media_id =  media_['id']
+
+#
+# Playing media
+#
+# You can retrieve the URL of a specific preset, this is the file
+wait_for_asset(media_id, 'flv_h263_mp3')
+print media.get_asset_url(id=media_id, preset='flv_h263_mp3')
+
+# you can retrieve the HTML embed code
+print media.get_embed(id=media_id)
+
+# you can retrieve the URL of the flash media player for use in your own embed code
+print media.get_mediaplayer_url(id=media_id)
+
+#
+# Listing media
+#
 # We list the assets of the media we just uploaded
 print media.list_asset(id=media_id)
 
@@ -62,6 +88,10 @@ for m in media.list(filter={'assets.flv_h263_mp3.status' : 'ready'}):
 for m in media.list(fields=['assets.mp4_h264_aac.status', 'meta.title'], filter={'assets.source.status' : 'ready'}):
     print m
 
+#
+# Deleting media
+#
 # We delete the medias that have their source asset in error status
 for m in media.list(filter={'assets.source.status' : 'error'}):
     media.delete(id=m['id'])
+

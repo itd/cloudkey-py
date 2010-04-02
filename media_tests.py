@@ -1,5 +1,5 @@
 USERNAME='test'
-PASSWORD='test'
+PASSWORD='qwsxdcfv'
 BASE_URL='http://api.dmcloud.net'
 
 import unittest
