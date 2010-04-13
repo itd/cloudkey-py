@@ -57,10 +57,8 @@ class WApiC(object):
                 path = self.namespace + '/' + method
             else:
                 path = method
-            url = '%s/json/%s?' % (self.base_url, path)
+            url = '%s/json/%s?%s' % (self.base_url, path, params)
 
-            url = url + params
-            #print url
             if self.force_auth:
                 url = urllib2.Request(url, headers=self.headers)
             try:
@@ -87,7 +85,7 @@ class WApiC(object):
             if response.code == 204:
                 return None
             return json.loads(response.read())
-        
+
         setattr(self, method, handler)
 
         return handler
