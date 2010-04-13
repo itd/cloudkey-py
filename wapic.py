@@ -8,6 +8,7 @@ import simplejson as json
 
 class WApiCException(Exception): pass
 class AuthorizationRequired(WApiCException): pass
+class AuthenticationFailed(WApiCException): pass
 class NotFound(WApiCException): pass
 class MissingArgument(WApiCException): pass
 class InvalidArgument(WApiCException): pass
@@ -78,6 +79,8 @@ class WApiC(object):
                             raise InvalidArgument(result['message'])
                 elif e.code == 401:
                     raise AuthorizationRequired()
+                elif e.code == 403:
+                    raise AuthenticationFailed()
                 elif e.code in (204,):
                     return None
                 raise WApiCException(e)
