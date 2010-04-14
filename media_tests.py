@@ -42,7 +42,7 @@ class MediaTestInfo(unittest.TestCase):
         res = self.media.info(id=media['id'])
 
         self.assertEqual(type(res), dict)
-        self.assertEqual(res.keys(), ['id'])
+        self.assertEqual(set(res.keys()), set([u'asset_statuses', u'meta', u'id', u'assets']))
         self.assertEqual(len(res['id']), 24)
 
     def test_media_not_found(self):
@@ -198,6 +198,140 @@ class MediaTestAssetUrl(unittest.TestCase):
         self.assertEqual(len(spath), 5)
         self.assertEqual(spath[4].split('.')[0], preset)
         self.assertEqual(spath[1], 'route')
+
+class MediaTestAssetStatus(unittest.TestCase):
+
+    def setUp(self):
+        self.media = Media(USERNAME, PASSWORD, BASE_URL)
+        self.media.reset()
+
+    def tearDown(self):
+        self.media.reset()
+
+    def wait_for_asset(self, media_id, asset_name, wait=60):
+        for i in range(wait):
+            asset = self.media.get_asset(id=media_id, preset=asset_name)
+            #print asset
+            if asset['status'] != 'ready':
+                if asset['status'] == 'error':
+                    #print 'Asset couldn\'t be downloaded!'
+                    return False
+                #print '%s not ready: %s' % (asset_name, asset['status'])
+                time.sleep(1)
+                continue
+            #print '%s ready' % asset_name
+            return True
+        raise Exception('timeout exceeded')
+
+    def wait_for_remove_asset(self, media_id, asset_name, timeout=10):
+        for i in range(timeout):
+            try:
+                self.media.get_asset(id=media_id, preset=asset_name)
+            except NotFound, e:
+                return True
+            time.sleep(1)
+        else:
+            raise Exception('timeout exceeded')
+
+    def test_asset_status_ready(self):
+        media_info = self.media.upload('my_funny_video.3gp')
+        media_url = media_info['url']
+
+        preset = 'source'
+
+        media = self.media.create()
+        res = self.media.set_asset(id=media['id'], preset=preset, url=media_url)
+        
+        res = self.media.get_asset(id= media['id'], preset=preset)
+        res = self.media.list(filter={ 'asset_statuses.' + res['status'] : preset })
+
+        #print 'ready %s' % self.media.list(filter={ 'asset_statuses.ready' : preset })
+        #print 'error %s' % self.media.list(filter={ 'asset_statuses.error' : preset })
+        #print 'pending %s' % self.media.list(filter={ 'asset_statuses.pending' : preset })
+        #print 'processing %s' % self.media.list(filter={ 'asset_statuses.processing' : preset })
+
+        self.assertEqual(res[0]['id'], media['id'])
+
+        res = self.wait_for_asset(media['id'], preset)
+        self.assertEqual(res, True)
+
+        res = self.media.list(filter={ 'asset_statuses.pending' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.processing' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.ready' : preset })
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0]['id'], media['id'])
+
+        preset='flv_h263_mp3'
+        res = self.media.process_asset(id=media['id'], preset=preset)
+        res = self.media.list(filter={ 'asset_statuses.pending' : preset })
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0]['id'], media['id'])
+
+        res = self.wait_for_asset(media['id'], preset)
+        self.assertEqual(res, True)
+
+        res = self.media.list(filter={ 'asset_statuses.pending' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.processing' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.ready' : preset })
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0]['id'], media['id'])
+
+        res = self.media.remove_asset(id=media['id'], preset=preset)
+        res = self.wait_for_remove_asset(media['id'], preset, 20)
+        self.assertEqual(res, True)
+        
+        res = self.media.list(filter={ 'asset_statuses.pending' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.processing' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.ready' : preset })
+        self.assertEqual(len(res), 0)
+
+    def test_asset_status_error(self):
+        media_info = self.media.upload('my_broken_video.avi')
+        media_url = media_info['url']
+
+        preset = 'source'
+
+        media = self.media.create()
+        res = self.media.set_asset(id=media['id'], preset=preset, url=media_url)
+        res = self.wait_for_asset(media['id'], preset)
+        self.assertEqual(res, True)
+
+        preset='flv_h263_mp3'
+        res = self.media.process_asset(id=media['id'], preset=preset)
+        res = self.media.list(filter={ 'asset_statuses.pending' : preset })
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0]['id'], media['id'])
+
+        res = self.wait_for_asset(media['id'], preset)
+        self.assertEqual(res, False)
+
+        res = self.media.list(filter={ 'asset_statuses.pending' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.processing' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.ready' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.error' : preset })
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0]['id'], media['id'])
+
+        res = self.media.remove_asset(id=media['id'], preset=preset)
+        
+        res = self.media.list(filter={ 'asset_statuses.pending' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.processing' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.ready' : preset })
+        self.assertEqual(len(res), 0)
+        res = self.media.list(filter={ 'asset_statuses.error' : preset })
+        self.assertEqual(len(res), 0)
+
 
 class MediaTestAsset(unittest.TestCase):
 
@@ -432,14 +566,14 @@ class MediaTestList(unittest.TestCase):
     def test_list(self):
         medias = []
         for i in range(25):
-            medias.append(self.media.create())
+            medias.append({u'asset_statuses': {}, u'meta': {}, u'id': self.media.create()['id'], u'assets': {}})
         res = self.media.list()
         self.assertEqual(res, medias)
 
     def test_pagination(self):
         medias = []
         for i in range(25):
-            medias.append(self.media.create())
+            medias.append({u'asset_statuses': {}, u'meta': {}, u'id': self.media.create()['id'], u'assets': {}})
 
         res = self.media.list(page=1)
         self.assertEqual(res, medias[:10])
@@ -497,7 +631,7 @@ class MediaTestList(unittest.TestCase):
         self.assertEqual(len(res), 13)
 
         for i in res:
-            self.assertEqual(len(i.keys()), 2)
+            self.assertEqual(len(i.keys()), 4)
             self.assertEqual(i['meta'].get('mykey-2'), 'value-2')
             self.assertEqual(i['meta'].get('mykey-3'), 'value-3')
             self.assertEqual(i['meta'].get('mykey-1'), None)
@@ -506,8 +640,8 @@ class MediaTestList(unittest.TestCase):
         res = self.media.list(filter=filter)
         self.assertEqual(len(res), 12)
         for i in res:
-            self.assertEqual(len(i.keys()), 1)
-            self.assertEqual(i.keys(), ['id'])
+            self.assertEqual(len(i.keys()), 4)
+            self.assertEqual(set(i.keys()), set([u'asset_statuses', u'meta', u'id', u'assets']))
 
 
 class MediaTestBase(unittest.TestCase):
@@ -534,23 +668,23 @@ class MediaTestAuth(unittest.TestCase):
         self.assertRaises(AuthorizationRequired, media.whoami)
 
     def test_normal_user(self):
-        media = Media('test', 'test', BASE_URL)
+        media = Media('test', 'qwsxdcfv', BASE_URL)
         res = media.whoami()
         self.assertEqual(res['username'], 'test')
 
     def test_normal_user_su(self):
-        media = Media('test', 'test', BASE_URL)
+        media = Media('test', 'qwsxdcfv', BASE_URL)
         media.act_as_user('sebest')
         res = media.whoami()
         self.assertEqual(res['username'], 'test')
 
     def test_super_user(self):
-        media = Media('root', 'test', BASE_URL)
+        media = Media('root', 'qwsxdcfv', BASE_URL)
         res = media.whoami()
         self.assertEqual(res['username'], 'root')
 
     def test_super_user_su(self):
-        media = Media('root', 'test', BASE_URL)
+        media = Media('root', 'qwsxdcfv', BASE_URL)
         media.act_as_user('sebest')
         res = media.whoami()
         self.assertEqual(res['username'], 'sebest')
