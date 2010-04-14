@@ -16,8 +16,8 @@ cloudkey = CloudKey('test', 'qwsxdcfv')
 #def my_upload_cb(name, progress, finished):
 #    print '%s %s %s' % (name, progress, finished)
 #
-#media_info = cloudkey.media.upload('my_funny_video.3gp', my_upload_cb)
-media_info = cloudkey.file.upload(filename='my_funny_video.3gp')
+#media_info = cloudkey.media.upload('.fixtures/video.3gp', my_upload_cb)
+media_info = cloudkey.file.upload(filename='.fixtures/video.3gp')
 
 # We create a new media
 media_id = cloudkey.media.create()['id']

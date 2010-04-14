@@ -233,7 +233,7 @@ class MediaTestAssetStatus(unittest.TestCase):
             raise Exception('timeout exceeded')
 
     def test_asset_status_ready(self):
-        media_info = self.cloudkey.file.upload(filename='my_funny_video.3gp')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/video.3gp')
         media_url = media_info['url']
 
         preset = 'source'
@@ -291,7 +291,7 @@ class MediaTestAssetStatus(unittest.TestCase):
         self.assertEqual(len(res), 0)
 
     def test_asset_status_error(self):
-        media_info = self.cloudkey.file.upload(filename='my_broken_video.avi')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/broken_video.avi')
         media_url = media_info['url']
 
         preset = 'source'
@@ -342,7 +342,7 @@ class MediaTestAsset(unittest.TestCase):
         self.cloudkey.media.reset()
 
     def test_media_set_asset(self):
-        media_info = self.cloudkey.file.upload(filename='my_funny_video.3gp')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/video.3gp')
         media_url = media_info['url']
 
         media = self.cloudkey.media.create()
@@ -365,7 +365,7 @@ class MediaTestAsset(unittest.TestCase):
         raise Exception('timeout exceeded')
 
     def test_media_get_asset(self):
-        media_info = self.cloudkey.file.upload(filename='my_funny_video.3gp')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/video.3gp')
         media_url = media_info['url']
 
         media = self.cloudkey.media.create()
@@ -393,7 +393,7 @@ class MediaTestAsset(unittest.TestCase):
             raise Exception('timeout exceeded')
 
     def test_media_remove_asset(self):
-        media_info = self.cloudkey.file.upload(filename='my_funny_video.3gp')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/video.3gp')
         media_url = media_info['url']
 
         media = self.cloudkey.media.create()
@@ -415,7 +415,7 @@ class MediaTestAsset(unittest.TestCase):
         self.assertRaises(NotFound, self.cloudkey.media.get_asset, id=media['id'], preset='source')
 
     def test_media_process_asset(self):
-        media_info = self.cloudkey.file.upload(filename='my_funny_video.3gp')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/video.3gp')
         media_url = media_info['url']
 
         media = self.cloudkey.media.create()
@@ -451,7 +451,7 @@ class MediaTestPublish(unittest.TestCase):
         self.cloudkey.media.reset()
 
     def test_publish(self):
-        media_info = self.cloudkey.file.upload(filename='my_funny_video.3gp')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/video.3gp')
         media_url = media_info['url']
 
         presets = ['flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld', 'jpeg_thumbnail_small', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_large']
@@ -471,7 +471,7 @@ class MediaTestPublish(unittest.TestCase):
             self.assertEqual(set(res.keys()), set(['status', 'duration', 'filesize']))
 
     def test_publish_source_error(self):
-        media_info = self.cloudkey.file.upload(filename='my_broken_video.avi')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/broken_video.avi')
         media_url = media_info['url']
 
         presets = ['flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld']
@@ -544,9 +544,9 @@ class MediaTestFileUpload(unittest.TestCase):
 
 
     def test_media_upload(self):
-        media_info = self.cloudkey.file.upload(filename='my_funny_video.3gp')
+        media_info = self.cloudkey.file.upload(filename='.fixtures/video.3gp')
         self.assertEqual(media_info['size'], 92545)
-        self.assertEqual(media_info['name'], 'my_funny_video')
+        self.assertEqual(media_info['name'], 'video')
         self.assertEqual('url' in media_info.keys(), True)
 
 class MediaTestList(unittest.TestCase):
