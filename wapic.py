@@ -78,9 +78,10 @@ class WApiC(object):
                         elif result['type'] == 'ApiInvalidParam':
                             raise InvalidArgument(result['message'])
                 elif e.code == 401:
-                    raise AuthorizationRequired()
-                elif e.code == 403:
-                    raise AuthenticationFailed()
+                    if self.login:
+                        raise AuthenticationFailed()
+                    else
+                        raise AuthorizationRequired()
                 elif e.code in (204,):
                     return None
                 raise WApiCException(e)
