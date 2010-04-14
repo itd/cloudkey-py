@@ -6,7 +6,7 @@ FARM='test_farm'
 import unittest
 import os, time
 
-from cloudkey.farmer import *
+from cloudkey import Farm, NotFound
 
 class FarmerTest(unittest.TestCase):
     def setUp(self):
@@ -17,7 +17,7 @@ class FarmerTest(unittest.TestCase):
 
     def test_get_node_notfound(self):
         self.assertRaises(NotFound, self.farm.get_node, name=FARM, node='node-1')
-        
+
     def test_get_node(self):
         res = self.farm.add_node(name=FARM, node='node-1')
         self.assertEqual(res, None)
@@ -70,6 +70,6 @@ class FarmerTest(unittest.TestCase):
             self.assertEqual(node['weight'], 1)
             self.assertEqual(node['comment'], '')
             self.assertEqual(node['name'][:5], 'node-')
-        
+
 if __name__ == '__main__':
     unittest.main()
