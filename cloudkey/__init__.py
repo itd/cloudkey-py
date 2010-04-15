@@ -99,16 +99,13 @@ class User(Api):
         return self._whoami
 
 class File(Api):
-    def upload(self, **kwargs):
-        result = self.file__upload(**kwargs)
-
-        if 'filename' not in kwargs:
-            return result
-
-        if 'progress_callback' in kwargs:
-            newhttp.set_callback(kwargs['progress_callback'])
+    def upload_file(self, filename, progress_callback = None):
+        result = self.upload()
 
         url = result['url']
+
+        if progress_callback:
+            newhttp.set_callback(progress_callback)
 
         if self.proxy:
             proxy_handler = urllib2.ProxyHandler({'http': self.proxy})
@@ -116,7 +113,7 @@ class File(Api):
         else:
             opener = urllib2.build_opener(newhttp.newHTTPHandler)
 
-        response = opener.open(url, {'file': open(kwargs['filename'], "rb")})
+        response = opener.open(url, {'file': open(filename, "rb")})
         result = json.loads(response.read())
         return result
 
