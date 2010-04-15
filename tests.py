@@ -1,8 +1,15 @@
 USERNAME=None
 PASSWORD=None
+
+SKIP_SU=True
 ROOT_USERNAME=None
 ROOT_PASSWORD=None
 SWITCH_USER=None
+
+SKIP_FARMER=True
+FARMER_USERNAME=None
+FARMER_PASSWORD=None
+FARMER_FARM=None
 
 try:
     from local_config import *
@@ -11,13 +18,22 @@ except ImportError:
 
 if not USERNAME: USERNAME = raw_input('Username: ')
 if not PASSWORD: PASSWORD = raw_input('Password: ')
-if not ROOT_USERNAME: ROOT_USERNAME = raw_input('Root Username (optional): ')
-if not ROOT_PASSWORD: ROOT_PASSWORD = raw_input('Root Password (optional): ')
-if not SWITCH_USER: SWITCH_USER = raw_input('SU Username (optional): ')
 
-import unittest
+if not SKIP_SU and not ROOT_USERNAME: ROOT_USERNAME = raw_input('Root Username (optional): ')
+if ROOT_USERNAME:
+    if not ROOT_PASSWORD: ROOT_PASSWORD = raw_input('Root Password: ')
+    if not SWITCH_USER: SWITCH_USER = raw_input('SU Username (optional): ')
+else:
+    if not SKIP_SU: print "SU tests will be skipped"
+if not SKIP_FARMER and not FARMER_USERNAME: FARMER_USERNAME = raw_input('Farmer Username (optional): ')
+if FARMER_USERNAME:
+    if not FARMER_PASSWORD: FARMER_PASSWORD = raw_input('Farmer Password: ')
+    if not FARMER_FARM: FARMER_FARM = raw_input('Farmer Farm: ')
+else:
+    if not SKIP_FARMER: print "Farmer tests will be skipped"
+
 import os, time
-
+import unittest
 from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, AuthorizationRequired, AuthenticationFailed
 
 class CloudKeyMediaDeleteTest(unittest.TestCase):
@@ -672,46 +688,110 @@ class CloudKeyMediaTest(unittest.TestCase):
         self.assertEqual(len(media['id']), 24)
 
 
-class CloudKeyAuthTest(unittest.TestCase):
+if ROOT_USERNAME and ROOT_PASSWORD and SWITCH_USER:
+    class CloudKeyAuthTest(unittest.TestCase):
+        def test_anonymous(self):
+            cloudkey = CloudKey(None, None)
+            self.assertRaises(AuthorizationRequired, cloudkey.user.whoami)
 
-    def test_anonymous(self):
-        cloudkey = CloudKey(None, None)
-        self.assertRaises(AuthorizationRequired, cloudkey.user.whoami)
+        def test_normal_user(self):
+            cloudkey = CloudKey(USERNAME, PASSWORD)
+            res = cloudkey.user.whoami()
+            self.assertEqual(res['username'], USERNAME)
 
-    def test_normal_user(self):
-        cloudkey = CloudKey(USERNAME, PASSWORD)
-        res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], USERNAME)
+        def test_normal_user_su(self):
+            cloudkey = CloudKey(USERNAME, PASSWORD)
+            cloudkey.act_as_user(SWITCH_USER)
+            res = cloudkey.user.whoami()
+            self.assertEqual(res['username'], USERNAME)
 
-    def test_normal_user_su(self):
-        cloudkey = CloudKey(USERNAME, PASSWORD)
-        cloudkey.act_as_user(SWITCH_USER)
-        res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], USERNAME)
+        def test_super_user(self):
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            res = cloudkey.user.whoami()
+            self.assertEqual(res['username'], ROOT_USERNAME)
 
-    def test_super_user(self):
-        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
-        res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], ROOT_USERNAME)
+        def test_super_user_su(self):
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            cloudkey.act_as_user(SWITCH_USER)
+            res = cloudkey.user.whoami()
+            self.assertEqual(res['username'], SWITCH_USER)
 
-    def test_super_user_su(self):
-        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
-        cloudkey.act_as_user(SWITCH_USER)
-        res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], SWITCH_USER)
+        def test_super_user_su_wrong_user(self):
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            cloudkey.act_as_user('unexisting_user')
+            self.assertRaises(AuthenticationFailed, cloudkey.user.whoami)
 
-    def test_super_user_su_wrong_user(self):
-        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
-        cloudkey.act_as_user('unexisting_user')
-        self.assertRaises(AuthenticationFailed, cloudkey.user.whoami)
+        def test_su_cache(self):
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            res = cloudkey.user.whoami()
+            self.assertEqual(res['username'], ROOT_USERNAME)
+            cloudkey.act_as_user(SWITCH_USER)
+            res = cloudkey.user.whoami()
+            self.assertEqual(res['username'], SWITCH_USER)
 
-    def test_su_cache(self):
-        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
-        res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], ROOT_USERNAME)
-        cloudkey.act_as_user(SWITCH_USER)
-        res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], SWITCH_USER)
+if FARMER_USERNAME and FARMER_PASSWORD and FARMER_FARM:
+    class CloudKeyFarmTest(unittest.TestCase):
+        def setUp(self):
+            self.cloudkey = CloudKey(FARMER_USERNAME, FARMER_PASSWORD)
+
+        def tearDown(self):
+            self.cloudkey.farm.remove(name=FARMER_FARM)
+
+        def test_get_node_notfound(self):
+            self.assertRaises(NotFound, self.cloudkey.farm.get_node, name=FARMER_FARM, node='node-1')
+
+        def test_get_node(self):
+            res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-1')
+            self.assertEqual(res, None)
+            res = self.cloudkey.farm.get_node(name=FARMER_FARM, node='node-1')
+            self.assertEqual(res, {'comment': '', 'enabled': False, 'name': 'node-1', 'weight': 1})
+
+        def test_add_node(self):
+            res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-1')
+            self.assertEqual(res, None)
+            res = self.cloudkey.farm.get_node(name=FARMER_FARM, node='node-1')
+            self.assertEqual(res, {'comment': '', 'enabled': False, 'name': 'node-1', 'weight': 1})
+
+        def test_add_node_with_weight(self):
+            res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-2', weight=10)
+            self.assertEqual(res, None)
+            res = self.cloudkey.farm.get_node(name=FARMER_FARM, node='node-2')
+            self.assertEqual(res, {'comment': '', 'enabled': False, 'name': 'node-2', 'weight': 10})
+
+        def test_add_node_with_weight_disabled(self):
+            res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-3', weight=10, enabled=False)
+            self.assertEqual(res, None)
+            res = self.cloudkey.farm.get_node(name=FARMER_FARM, node='node-3')
+            self.assertEqual(res, {'comment': '', 'enabled': False, 'name': 'node-3', 'weight': 10})
+
+        def test_add_node_with_update(self):
+            res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-4', weight=10, enabled=False)
+            self.assertEqual(res, None)
+            res = self.cloudkey.farm.get_node(name=FARMER_FARM, node='node-4')
+            self.assertEqual(res, {'comment': '', 'enabled': False, 'name': 'node-4', 'weight': 10})
+            res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-4', weight=10, enabled=True)
+            self.assertEqual(res, None)
+            res = self.cloudkey.farm.get_node(name=FARMER_FARM, node='node-4')
+            self.assertEqual(res, {'comment': '', 'enabled': True, 'name': 'node-4', 'weight': 10})
+
+        def test_add_node_with_comment_enabled(self):
+            res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-5', weight=10, enabled=True, comment='super node')
+            self.assertEqual(res, None)
+            res = self.cloudkey.farm.get_node(name=FARMER_FARM, node='node-5')
+            self.assertEqual(res, {'comment': 'super node', 'enabled': True, 'name': 'node-5', 'weight': 10})
+
+        def test_list_node(self):
+            for i in range(10):
+                res = self.cloudkey.farm.add_node(name=FARMER_FARM, node='node-%s' % i)
+                self.assertEqual(res, None)
+            res = self.cloudkey.farm.list_node(name=FARMER_FARM)
+            self.assertEqual(len(res), 10)
+            for node in res:
+                self.assertEqual(set(node.keys()), set(['comment', 'enabled', 'name', 'weight']))
+                self.assertEqual(node['enabled'], False)
+                self.assertEqual(node['weight'], 1)
+                self.assertEqual(node['comment'], '')
+                self.assertEqual(node['name'][:5], 'node-')
 
 if __name__ == '__main__':
     unittest.main()
