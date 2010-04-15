@@ -121,6 +121,8 @@ class Media(Api): pass
 class Farm(Api): pass
 
 class CloudKey(object):
+    namespaces = {'user': 'User', 'media': 'Media', 'file': 'File', 'farm': 'Farm'}
+
     def __init__(self, login, password, base_url=None, proxy=None):
         self.login = login;
         self.password = password
@@ -131,18 +133,17 @@ class CloudKey(object):
     def act_as_user(self, username):
         self._act_as_user = username;
         if 'user' in dir(self): delattr(self, 'user') # reset whoami cache
-        for namespace in('media', 'user', 'file', 'farm'):
+        for namespace in CloudKey.namespaces:
             if namespace in dir(self):
                 getattr(self, namespace).extra_params['__user__'] = self._act_as_user
         return self
 
     def __getattr__(self, namespace):
-        if namespace == 'media': class_name = Media
-        elif namespace == 'user': class_name = User
-        elif namespace == 'file': class_name = File
-        elif namespace == 'farm': class_name = Farm
-        else: raise InvalidNamespace(namespace)
-        namespace_obj = class_name(self.login, self.password, self.base_url, self.proxy)
+        try:
+            ns_class =  globals()[CloudKey.namespaces[namespace]]
+        except KeyError:
+            raise InvalidNamespace(namespace)
+        namespace_obj = ns_class(self.login, self.password, self.base_url, self.proxy)
         if self._act_as_user:
             namespace_obj.extra_params['__user__'] = self._act_as_user
         setattr(self, namespace, namespace_obj);
