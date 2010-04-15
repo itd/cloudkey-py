@@ -123,7 +123,8 @@ class Media(Api): pass
 class Farm(Api): pass
 
 class CloudKey(object):
-    namespaces = {'user': 'User', 'media': 'Media', 'file': 'File', 'farm': 'Farm'}
+    namespaces = {}
+    loaded = False
 
     def __init__(self, login, password, base_url=None, proxy=None):
         self.login = login;
@@ -131,6 +132,15 @@ class CloudKey(object):
         self.base_url = base_url
         self.proxy = proxy
         self._act_as_user = None
+
+        if not CloudKey.loaded:
+            for name, obj in globals().items():
+                try:
+                    if issubclass(obj, Api):
+                        CloudKey.namespaces[name.lower()] = obj
+                except TypeError:
+                    pass
+            CloudKey.loaded = True
 
     def act_as_user(self, username):
         self._act_as_user = username;
@@ -142,7 +152,7 @@ class CloudKey(object):
 
     def __getattr__(self, namespace):
         try:
-            ns_class =  globals()[CloudKey.namespaces[namespace]]
+            ns_class =  CloudKey.namespaces[namespace]
         except KeyError:
             raise InvalidNamespace(namespace)
         namespace_obj = ns_class(self.login, self.password, self.base_url, self.proxy)
