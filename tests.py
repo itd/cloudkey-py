@@ -20,7 +20,7 @@ import os, time
 
 from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, AuthorizationRequired, AuthenticationFailed
 
-class MediaTestDelete(unittest.TestCase):
+class CloudKeyMediaDeleteTest(unittest.TestCase):
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
@@ -42,7 +42,7 @@ class MediaTestDelete(unittest.TestCase):
     def test_invalid_media_id(self):
         self.assertRaises(InvalidArgument, self.cloudkey.media.delete, id='b87186c84e1b015a0000000')
 
-class MediaTestInfo(unittest.TestCase):
+class CloudKeyMediaInfoTest(unittest.TestCase):
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
@@ -64,7 +64,7 @@ class MediaTestInfo(unittest.TestCase):
     def test_invalid_media_id(self):
         self.assertRaises(InvalidArgument, self.cloudkey.media.info, id='b87186c84e1b015a0000000')
 
-class MediaTestCreate(unittest.TestCase):
+class CloudKeyMediaCreateTest(unittest.TestCase):
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
@@ -79,7 +79,7 @@ class MediaTestCreate(unittest.TestCase):
         self.assertEqual(media.keys(), ['id'])
         self.assertEqual(len(media['id']), 24)
 
-class MediaTestMeta(unittest.TestCase):
+class CloudKeyMediaMetaTest(unittest.TestCase):
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
@@ -178,7 +178,7 @@ class MediaTestMeta(unittest.TestCase):
         self.assertRaises(NotFound, self.cloudkey.media.remove_meta, id=media['id'], key='mykey')
         self.assertRaises(NotFound, self.cloudkey.media.get_meta, id=media['id'], key='mykey')
 
-class MediaTestAssetUrl(unittest.TestCase):
+class CloudKeyMediaAssetUrl(unittest.TestCase):
 
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
@@ -212,7 +212,7 @@ class MediaTestAssetUrl(unittest.TestCase):
         #self.assertEqual(spath[4].split('.')[0], preset)
         #self.assertEqual(spath[1], 'route')
 
-class MediaTestAssetStatus(unittest.TestCase):
+class CloudKeyMediaAssetStatusTest(unittest.TestCase):
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
@@ -345,7 +345,7 @@ class MediaTestAssetStatus(unittest.TestCase):
         self.assertEqual(len(res), 0)
 
 
-class MediaTestAsset(unittest.TestCase):
+class CloudKeyMediaAssetTest(unittest.TestCase):
 
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
@@ -454,7 +454,7 @@ class MediaTestAsset(unittest.TestCase):
 
 #        my_broken_video.avi
 
-class MediaTestPublish(unittest.TestCase):
+class CloudKeyMediaPublishTest(unittest.TestCase):
 
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
@@ -531,7 +531,7 @@ class MediaTestPublish(unittest.TestCase):
         raise Exception('timeout exceeded')
 
 
-class MediaTestFileUpload(unittest.TestCase):
+class CloudKeyFileTest(unittest.TestCase):
 
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
@@ -561,7 +561,7 @@ class MediaTestFileUpload(unittest.TestCase):
         self.assertEqual(media_info['name'], 'video')
         self.assertEqual('url' in media_info.keys(), True)
 
-class MediaTestList(unittest.TestCase):
+class CloudKeyMediaListTest(unittest.TestCase):
 
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
@@ -655,7 +655,7 @@ class MediaTestList(unittest.TestCase):
             self.assertEqual(set(i.keys()), set([u'asset_statuses', u'meta', u'id', u'assets']))
 
 
-class MediaTestBase(unittest.TestCase):
+class CloudKeyMediaTest(unittest.TestCase):
 
     def setUp(self):
         self.cloudkey = CloudKey(USERNAME, PASSWORD)
@@ -672,7 +672,7 @@ class MediaTestBase(unittest.TestCase):
         self.assertEqual(len(media['id']), 24)
 
 
-class MediaTestAuth(unittest.TestCase):
+class CloudKeyAuthTest(unittest.TestCase):
 
     def test_anonymous(self):
         cloudkey = CloudKey(None, None)
