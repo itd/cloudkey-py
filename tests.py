@@ -544,7 +544,7 @@ class MediaTestFileUpload(unittest.TestCase):
 
     def test_media_upload(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
-        self.assertEqual(media_info['size'], 92545)
+        self.assertEqual(media_info['size'], 92543)
         self.assertEqual(media_info['name'], 'video')
         self.assertEqual('url' in media_info.keys(), True)
 

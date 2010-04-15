@@ -2,7 +2,8 @@ import urllib
 import urllib2
 import base64
 import simplejson as json
-from cloudkey import newhttp
+import pycurl
+import StringIO
 
 class ApiException(Exception): pass
 class AuthorizationRequired(ApiException): pass
@@ -99,23 +100,24 @@ class User(Api):
         return self._whoami
 
 class File(Api):
-    def upload_file(self, filename, progress_callback = None):
+    def upload_file(self, file):
         result = self.upload()
 
-        url = result['url']
-
-        if progress_callback:
-            newhttp.set_callback(progress_callback)
+        c = pycurl.Curl()
+        c.setopt(pycurl.URL, result['url'])
+        c.setopt(pycurl.FOLLOWLOCATION, True)
+        c.setopt(pycurl.HTTPPOST, [('file', (pycurl.FORM_FILE, file))])
 
         if self.proxy:
-            proxy_handler = urllib2.ProxyHandler({'http': self.proxy})
-            opener = urllib2.build_opener(proxy_handler, newhttp.newHTTPHandler)
-        else:
-            opener = urllib2.build_opener(newhttp.newHTTPHandler)
+            c.setopt(pycurl.PROXY, self.proxy)
 
-        response = opener.open(url, {'file': open(filename, "rb")})
-        result = json.loads(response.read())
-        return result
+        response = StringIO.StringIO()
+        c.setopt(pycurl.WRITEFUNCTION, response.write)
+
+        c.perform()
+        c.close()
+
+        return json.loads(response.getvalue())
 
 class Media(Api): pass
 class Farm(Api): pass
