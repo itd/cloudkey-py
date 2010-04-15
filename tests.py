@@ -692,5 +692,13 @@ class MediaTestAuth(unittest.TestCase):
         cloudkey.act_as_user('johndoe')
         self.assertRaises(AuthenticationFailed, cloudkey.user.whoami)
 
+    def test_su_cache(self):
+        cloudkey = CloudKey('root', 'qwsxdcfv', BASE_URL)
+        res = cloudkey.user.whoami()
+        self.assertEqual(res['username'], 'root')
+        cloudkey.act_as_user('sebest')
+        res = cloudkey.user.whoami()
+        self.assertEqual(res['username'], 'sebest')
+
 if __name__ == '__main__':
     unittest.main()

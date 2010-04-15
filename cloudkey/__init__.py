@@ -130,6 +130,7 @@ class CloudKey(object):
 
     def act_as_user(self, username):
         self._act_as_user = username;
+        if 'user' in dir(self): delattr(self, 'user') # reset whoami cache
         for namespace in('media', 'user', 'file', 'farm'):
             if namespace in dir(self):
                 getattr(self, namespace).extra_params['__user__'] = self._act_as_user
