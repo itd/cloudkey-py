@@ -4,11 +4,11 @@ instance, to call the `count` method from the `media` namespace, the code
 would be as follow:
 
     cloudkey = CloudKey(username, password)
-    cloudkey.media.reset()
+    result = cloudkey.media.count()
 
 To pass arguments to method, an named arguments are passed to the called method:
 
-    cloudkey.media.delete(id: a_media_id)
+    media = cloudkey.media.info(id: a_media_id)
 
 When method returns something, the result is either an `dict` when result is
 a structure or a `list` of `dict`s when result is a list:
