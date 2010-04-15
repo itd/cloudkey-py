@@ -1,6 +1,19 @@
-USERNAME='test'
-PASSWORD='qwsxdcfv'
-BASE_URL='http://api.dmcloud.net'
+USERNAME=None
+PASSWORD=None
+ROOT_USERNAME=None
+ROOT_PASSWORD=None
+SWITCH_USER=None
+
+try:
+    from local_config import *
+except ImportError:
+    pass
+
+if not USERNAME: USERNAME = raw_input('Username: ')
+if not PASSWORD: PASSWORD = raw_input('Password: ')
+if not ROOT_USERNAME: ROOT_USERNAME = raw_input('Root Username (optional): ')
+if not ROOT_PASSWORD: ROOT_PASSWORD = raw_input('Root Password (optional): ')
+if not SWITCH_USER: SWITCH_USER = raw_input('SU Username (optional): ')
 
 import unittest
 import os, time
@@ -9,7 +22,7 @@ from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, Autho
 
 class MediaTestDelete(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -31,7 +44,7 @@ class MediaTestDelete(unittest.TestCase):
 
 class MediaTestInfo(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -53,7 +66,7 @@ class MediaTestInfo(unittest.TestCase):
 
 class MediaTestCreate(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -68,7 +81,7 @@ class MediaTestCreate(unittest.TestCase):
 
 class MediaTestMeta(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -168,7 +181,7 @@ class MediaTestMeta(unittest.TestCase):
 class MediaTestAssetUrl(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -201,7 +214,7 @@ class MediaTestAssetUrl(unittest.TestCase):
 
 class MediaTestAssetStatus(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -335,7 +348,7 @@ class MediaTestAssetStatus(unittest.TestCase):
 class MediaTestAsset(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -444,7 +457,7 @@ class MediaTestAsset(unittest.TestCase):
 class MediaTestPublish(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -521,7 +534,7 @@ class MediaTestPublish(unittest.TestCase):
 class MediaTestFileUpload(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -551,7 +564,7 @@ class MediaTestFileUpload(unittest.TestCase):
 class MediaTestList(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -645,7 +658,7 @@ class MediaTestList(unittest.TestCase):
 class MediaTestBase(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD, BASE_URL)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -662,43 +675,43 @@ class MediaTestBase(unittest.TestCase):
 class MediaTestAuth(unittest.TestCase):
 
     def test_anonymous(self):
-        cloudkey = CloudKey(None, None, BASE_URL)
+        cloudkey = CloudKey(None, None)
         self.assertRaises(AuthorizationRequired, cloudkey.user.whoami)
 
     def test_normal_user(self):
-        cloudkey = CloudKey('test', 'qwsxdcfv', BASE_URL)
+        cloudkey = CloudKey(USERNAME, PASSWORD)
         res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], 'test')
+        self.assertEqual(res['username'], USERNAME)
 
     def test_normal_user_su(self):
-        cloudkey = CloudKey('test', 'qwsxdcfv', BASE_URL)
-        cloudkey.act_as_user('sebest')
+        cloudkey = CloudKey(USERNAME, PASSWORD)
+        cloudkey.act_as_user(SWITCH_USER)
         res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], 'test')
+        self.assertEqual(res['username'], USERNAME)
 
     def test_super_user(self):
-        cloudkey = CloudKey('root', 'qwsxdcfv', BASE_URL)
+        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
         res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], 'root')
+        self.assertEqual(res['username'], ROOT_USERNAME)
 
     def test_super_user_su(self):
-        cloudkey = CloudKey('root', 'qwsxdcfv', BASE_URL)
-        cloudkey.act_as_user('sebest')
+        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+        cloudkey.act_as_user(SWITCH_USER)
         res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], 'sebest')
+        self.assertEqual(res['username'], SWITCH_USER)
 
     def test_super_user_su_wrong_user(self):
-        cloudkey = CloudKey('root', 'test', BASE_URL)
-        cloudkey.act_as_user('johndoe')
+        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+        cloudkey.act_as_user('unexisting_user')
         self.assertRaises(AuthenticationFailed, cloudkey.user.whoami)
 
     def test_su_cache(self):
-        cloudkey = CloudKey('root', 'qwsxdcfv', BASE_URL)
+        cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
         res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], 'root')
-        cloudkey.act_as_user('sebest')
+        self.assertEqual(res['username'], ROOT_USERNAME)
+        cloudkey.act_as_user(SWITCH_USER)
         res = cloudkey.user.whoami()
-        self.assertEqual(res['username'], 'sebest')
+        self.assertEqual(res['username'], SWITCH_USER)
 
 if __name__ == '__main__':
     unittest.main()
