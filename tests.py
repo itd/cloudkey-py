@@ -1,3 +1,4 @@
+BASE_URL=None
 USERNAME=None
 PASSWORD=None
 
@@ -38,7 +39,7 @@ from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, Autho
 
 class CloudKeyMediaDeleteTest(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -60,7 +61,7 @@ class CloudKeyMediaDeleteTest(unittest.TestCase):
 
 class CloudKeyMediaInfoTest(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -82,7 +83,7 @@ class CloudKeyMediaInfoTest(unittest.TestCase):
 
 class CloudKeyMediaCreateTest(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -97,7 +98,7 @@ class CloudKeyMediaCreateTest(unittest.TestCase):
 
 class CloudKeyMediaMetaTest(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -197,7 +198,7 @@ class CloudKeyMediaMetaTest(unittest.TestCase):
 class CloudKeyMediaAssetUrl(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -230,7 +231,7 @@ class CloudKeyMediaAssetUrl(unittest.TestCase):
 
 class CloudKeyMediaAssetStatusTest(unittest.TestCase):
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -364,7 +365,7 @@ class CloudKeyMediaAssetStatusTest(unittest.TestCase):
 class CloudKeyMediaAssetTest(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -473,7 +474,7 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
 class CloudKeyMediaPublishTest(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -550,7 +551,7 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
 class CloudKeyFileTest(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -580,7 +581,7 @@ class CloudKeyFileTest(unittest.TestCase):
 class CloudKeyMediaListTest(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -674,7 +675,7 @@ class CloudKeyMediaListTest(unittest.TestCase):
 class CloudKeyMediaTest(unittest.TestCase):
 
     def setUp(self):
-        self.cloudkey = CloudKey(USERNAME, PASSWORD)
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
 
     def tearDown(self):
@@ -695,12 +696,12 @@ if ROOT_USERNAME and ROOT_PASSWORD and SWITCH_USER:
             self.assertRaises(AuthorizationRequired, cloudkey.user.whoami)
 
         def test_normal_user(self):
-            cloudkey = CloudKey(USERNAME, PASSWORD)
+            cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
             res = cloudkey.user.whoami()
             self.assertEqual(res['username'], USERNAME)
 
         def test_normal_user_su(self):
-            cloudkey = CloudKey(USERNAME, PASSWORD)
+            cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
             cloudkey.act_as_user(SWITCH_USER)
             res = cloudkey.user.whoami()
             self.assertEqual(res['username'], USERNAME)
