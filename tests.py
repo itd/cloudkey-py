@@ -293,7 +293,7 @@ class CloudKeyMediaAssetStatusTest(unittest.TestCase):
         self.assertEqual(res[0]['id'], media['id'])
 
         preset='flv_h263_mp3'
-        res = self.cloudkey.media.process_asset(id=media['id'], preset=preset)
+        self.cloudkey.media.process_asset(id=media['id'], preset=preset)
         res = self.cloudkey.media.list(filter={ 'asset_statuses.pending' : preset })
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0]['id'], media['id'])
@@ -332,7 +332,7 @@ class CloudKeyMediaAssetStatusTest(unittest.TestCase):
         self.assertEqual(res, True)
 
         preset='flv_h263_mp3'
-        res = self.cloudkey.media.process_asset(id=media['id'], preset=preset)
+        self.cloudkey.media.process_asset(id=media['id'], preset=preset)
         res = self.cloudkey.media.list(filter={ 'asset_statuses.pending' : preset })
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0]['id'], media['id'])
@@ -377,7 +377,8 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
 
         media = self.cloudkey.media.create()
         res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
-        self.assertEqual(res, None)
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'queued')
 
     def wait_for_asset(self, media_id, asset_name, wait=60):
         for i in range(wait):
@@ -432,13 +433,15 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertEqual(res, True)
 
         res = self.cloudkey.media.remove_asset(id=media['id'], preset='source')
-        self.assertEqual(res, None)
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'queued')
         res = self.wait_for_remove_asset(media['id'], 'source', 20)
         self.assertEqual(res, True)
 
         self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
         res = self.cloudkey.media.remove_asset(id=media['id'], preset='source')
-        self.assertEqual(res, None)
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'queued')
 
         res = self.wait_for_remove_asset(media['id'], 'source')
         self.assertEqual(res, True)
@@ -451,9 +454,11 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         media = self.cloudkey.media.create()
         res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
         res = self.cloudkey.media.process_asset(id=media['id'], preset='flv_h263_mp3')
-        self.assertEqual(res, None)
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'queued')
         res = self.cloudkey.media.process_asset(id=media['id'], preset='mp4_h264_aac')
-        self.assertEqual(res, None)
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'queued')
         res = self.cloudkey.media.get_asset(id= media['id'], preset='flv_h263_mp3')
         self.assertEqual(res['status'], 'pending')
         res = self.cloudkey.media.get_asset(id= media['id'], preset='mp4_h264_aac')
@@ -470,6 +475,13 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertEqual(set(res.keys()), set(['status', 'duration', 'filesize']))
 
 #        my_broken_video.avi
+
+    def test_media_process_asset_no_source(self):
+        media = self.cloudkey.media.create()
+        res = self.cloudkey.media.process_asset(id=media['id'], preset='flv_h263_mp3')
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'error')
+        self.assertRaises(NotFound, self.cloudkey.media.get_asset, id= media['id'], preset='flv_h263_mp3')
 
 class CloudKeyMediaPublishTest(unittest.TestCase):
 
