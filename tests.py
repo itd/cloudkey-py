@@ -371,7 +371,7 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
     def tearDown(self):
         self.cloudkey.media.reset()
 
-    def test_media_set_asset(self):
+    def test_media_set_asset_source(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
         media_url = media_info['url']
 
@@ -379,6 +379,21 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
         self.assertNotEqual(res, None)
         self.assertEqual(res['status'], 'queued')
+
+    def test_media_set_asset_existing_video(self):
+        media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
+        media_url = media_info['url']
+
+        preset='flv_h263_mp3'
+        media = self.cloudkey.media.create()
+        res = self.cloudkey.media.set_asset(id=media['id'], preset=preset, url=media_url)
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'queued')
+        res = self.wait_for_asset(media['id'], preset)
+
+        res = self.cloudkey.media.get_asset(id=media['id'], preset=preset)
+        self.assertEqual('status' in res.keys(), True)
+        self.assertEqual(res['status'], 'ready')
 
     def wait_for_asset(self, media_id, asset_name, wait=60):
         for i in range(wait):
