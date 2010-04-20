@@ -5,7 +5,7 @@ import time, sys
 from cloudkey import CloudKey
 
 # We connect to the api with our login/password
-cloudkey = CloudKey('test', 'qwsxdcfv')
+cloudkey = CloudKey(USERNAME, PASSWORD)
 
 #
 # Adding media
@@ -17,7 +17,7 @@ cloudkey = CloudKey('test', 'qwsxdcfv')
 #    print '%s %s %s' % (name, progress, finished)
 #
 #media_info = cloudkey.media.upload('.fixtures/video.3gp', my_upload_cb)
-media_info = cloudkey.file.upload(filename='.fixtures/video.3gp')
+media_info = cloudkey.file.upload_file(file='.fixtures/video.3gp')
 
 # We create a new media
 media_id = cloudkey.media.create()['id']
