@@ -1,11 +1,23 @@
 #!/bin/env python
 
+BASE_URL=None
+USERNAME=None
+PASSWORD=None
+
+try:
+    from local_config import *
+except ImportError:
+    pass
+
+if not USERNAME: USERNAME = raw_input('Username: ')
+if not PASSWORD: PASSWORD = raw_input('Password: ')
+
 import time, sys
 
 from cloudkey import CloudKey
 
 # We connect to the api with our login/password
-cloudkey = CloudKey(USERNAME, PASSWORD)
+cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
 
 #
 # Adding media
