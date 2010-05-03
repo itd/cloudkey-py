@@ -321,7 +321,6 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertEqual(res, True)
 
         self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
-        print self.cloudkey.media.list_asset(id=media['id'])
         res = self.cloudkey.media.remove_asset(id=media['id'], preset='source')
         self.assertNotEqual(res, None)
         self.assertEqual(res['status'], 'queued')
@@ -488,24 +487,31 @@ class CloudKeyMediaListTest(unittest.TestCase):
 
     def test_list(self):
         medias = []
-        for i in range(25):
-            medias.append({u'meta': {}, u'id': self.cloudkey.media.create()['id'], u'assets': {}})
+        for i in range(30):
+            medias.append({'meta': {}, 'id': self.cloudkey.media.create()['id'], 'assets': {}})
         res = self.cloudkey.media.list()
-        self.assertEqual(res, medias)
+        self.assertEqual(len(res), 30)
+
+        res_ids = [m['id'] for m in res]
+        media_ids = [m['id'] for m in medias]
+        res_ids = sorted(res_ids)
+        media_ids = sorted(media_ids)
+        self.assertEqual(res_ids, media_ids)
+        self.assertEqual(sorted(res), sorted(medias))
 
     def test_pagination(self):
         medias = []
         for i in range(25):
-            medias.append({u'meta': {}, u'id': self.cloudkey.media.create()['id'], u'assets': {}})
+            medias.append({'meta': {}, 'id': self.cloudkey.media.create()['id'], 'assets': {}})
 
-        res = self.cloudkey.media.list(page=1)
-        self.assertEqual(res, medias[:10])
+        res = self.cloudkey.media.list(page=1, sort=[('_id', 1)])
+        self.assertEqual(sorted(res), sorted(medias[:10]))
 
-        res = self.cloudkey.media.list(page=2)
-        self.assertEqual(res, medias[10:20])
+        res = self.cloudkey.media.list(page=2, sort=[('_id', 1)])
+        self.assertEqual(sorted(res), sorted(medias[10:20]))
 
-        res = self.cloudkey.media.list(page=2, count=6)
-        self.assertEqual(res, medias[6:12])
+        res = self.cloudkey.media.list(page=2, count=6, sort=[('_id', 1)])
+        self.assertEqual(sorted(res), sorted(medias[6:12]))
 
     def test_invalid_filter(self):
         medias = []
