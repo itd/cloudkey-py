@@ -72,7 +72,7 @@ class CloudKeyMediaInfoTest(unittest.TestCase):
         res = self.cloudkey.media.info(id=media['id'])
 
         self.assertEqual(type(res), dict)
-        self.assertEqual(set(res.keys()), set([u'meta', u'id', u'assets']))
+        self.assertEqual(set(res.keys()), set([u'meta', u'id', u'assets', u'created']))
         self.assertEqual(len(res['id']), 24)
 
     def test_media_not_found(self):
