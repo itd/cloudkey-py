@@ -502,16 +502,19 @@ class CloudKeyMediaListTest(unittest.TestCase):
     def test_pagination(self):
         medias = []
         for i in range(25):
-            medias.append({'meta': {}, 'id': self.cloudkey.media.create()['id'], 'assets': {}})
+            medias.append(self.cloudkey.media.create()['id'])
 
-        res = self.cloudkey.media.list(page=1, sort=[('_id', 1)])
-        self.assertEqual(sorted(res), sorted(medias[:10]))
+        res = self.cloudkey.media.list(page=1, sort=[('created', 1)])
+        res = [r['id'] for r in res]
+        self.assertEqual(res, medias[:10])
 
-        res = self.cloudkey.media.list(page=2, sort=[('_id', 1)])
-        self.assertEqual(sorted(res), sorted(medias[10:20]))
+        res = self.cloudkey.media.list(page=2, sort=[('created', 1)])
+        res = [r['id'] for r in res]
+        self.assertEqual(res,  medias[10:20])
 
-        res = self.cloudkey.media.list(page=2, count=6, sort=[('_id', 1)])
-        self.assertEqual(sorted(res), sorted(medias[6:12]))
+        res = self.cloudkey.media.list(page=2, count=6, sort=[('created', 1)])
+        res = [r['id'] for r in res]
+        self.assertEqual(res,  medias[6:12])
 
     def test_invalid_filter(self):
         medias = []
