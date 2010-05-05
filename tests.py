@@ -259,7 +259,7 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         res = self.wait_for_asset(media['id'], preset)
 
         res = self.cloudkey.media.get_asset(id=media['id'], preset=preset)
-        self.assertEqual('status' in res.keys(), True)
+        self.assertTrue('status' in res.keys())
         self.assertEqual(res['status'], 'ready')
 
     def wait_for_asset(self, media_id, asset_name, wait=60):
@@ -285,13 +285,13 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
 
         res = self.cloudkey.media.get_asset(id= media['id'], preset='source')
-        self.assertEqual('status' in res.keys(), True)
-        self.assertEqual(res['status'] in ('pending', 'processing'), True)
+        self.assertTrue('status' in res.keys())
+        self.assertTrue(res['status'] in ('pending', 'processing'))
 
         res = self.wait_for_asset(media['id'], 'source')
-        self.assertEqual(res, True)
+        self.assertTrue(res)
         res = self.cloudkey.media.get_asset(id=media['id'], preset='source')
-        self.assertEqual('status' in res.keys(), True)
+        self.assertTrue('status' in res.keys())
         self.assertEqual(res['status'], 'ready')
 
 
@@ -346,9 +346,9 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         res = self.cloudkey.media.get_asset(id= media['id'], preset='mp4_h264_aac')
         self.assertEqual(res['status'], 'pending')
         res = self.wait_for_asset(media['id'], 'flv_h263_mp3')
-        self.assertEqual(res, True)
+        self.assertTrue(res)
         res = self.wait_for_asset(media['id'], 'mp4_h264_aac')
-        self.assertEqual(res, True)
+        self.assertTrue(res)
         res = self.cloudkey.media.get_asset(id= media['id'], preset='flv_h263_mp3')
         self.assertEqual(res['status'], 'ready')
         self.assertEqual(set(res.keys()), set(['name', 'status', 'duration', 'filesize']))
@@ -364,6 +364,21 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertNotEqual(res, None)
         self.assertEqual(res['status'], 'error')
         self.assertRaises(NotFound, self.cloudkey.media.get_asset, id= media['id'], preset='flv_h263_mp3')
+
+    def test_media_process_asset_already_exists(self):
+        media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
+        media_url = media_info['url']
+
+        media = self.cloudkey.media.create()
+        res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
+        res = self.cloudkey.media.process_asset(id=media['id'], preset='flv_h263_mp3')
+        self.assertEqual(res['status'], 'queued')
+
+        res = self.cloudkey.media.process_asset(id=media['id'], preset='flv_h263_mp3')
+        self.assertEqual(res['status'], 'error')
+        self.assertEqual(res['message'], 'The preset "flv_h263_mp3" already exists.')
+        self.assertEqual(res['type'], 'AssetAlreadyExists')
+        
 
 class CloudKeyMediaPublishTest(unittest.TestCase):
 
@@ -419,12 +434,20 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
 
         for preset in presets:
             res = self.wait_for_asset(media['id'], preset, 10)
-            self.assertEqual(res, False)
+            self.assertFalse(res)
 
         for preset in presets:
             res = self.cloudkey.media.get_asset(id= media['id'], preset=preset)
             self.assertEqual(res['status'], 'error')
             self.assertEqual(res.keys(), ['status', 'name'])
+
+    def test_publish_duplicate_preset_error(self):
+        media_info = self.cloudkey.file.upload_file('.fixtures/broken_video.avi')
+        media_url = media_info['url']
+
+        presets = ['mp4_h264_aac', 'mp4_h264_aac']
+        media = self.cloudkey.media.publish(url=media_url, presets=presets)
+        self.assertTrue(media.has_key('id'))
 
     def wait_for_asset(self, media_id, asset_name, wait=60):
         for i in range(wait):
@@ -454,12 +477,12 @@ class CloudKeyFileTest(unittest.TestCase):
     def test_file_upload(self):
         # status url
         res = self.cloudkey.file.upload()
-        self.assertEqual('url' in res.keys(), True)
+        self.assertTrue('url' in res.keys())
 
     def test_file_upload_target(self):
         mytarget='http://www.example.com/myform'
         res = self.cloudkey.file.upload(target=mytarget)
-        self.assertEqual('url' in res.keys(), True)
+        self.assertTrue('url' in res.keys())
         import urlparse
         parsed = urlparse.urlparse(res['url'])
         myqs = urlparse.parse_qs(parsed.query)
@@ -470,7 +493,7 @@ class CloudKeyFileTest(unittest.TestCase):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
         self.assertEqual(media_info['size'], 92543)
         self.assertEqual(media_info['name'], 'video')
-        self.assertEqual('url' in media_info.keys(), True)
+        self.assertTrue('url' in media_info.keys())
 
 class CloudKeyMediaListTest(unittest.TestCase):
 
@@ -693,7 +716,7 @@ if FARMER_USERNAME and FARMER_PASSWORD and FARMER_FARM:
             self.assertEqual(len(res), 10)
             for node in res:
                 self.assertEqual(set(node.keys()), set(['comment', 'enabled', 'name', 'weight']))
-                self.assertEqual(node['enabled'], False)
+                self.assertFalse(node['enabled'])
                 self.assertEqual(node['weight'], 1)
                 self.assertEqual(node['comment'], '')
                 self.assertEqual(node['name'][:5], 'node-')
