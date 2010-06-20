@@ -1,3 +1,4 @@
+import os
 import urllib
 import urllib2
 import base64
@@ -101,6 +102,8 @@ class User(Api):
 
 class File(Api):
     def upload_file(self, file):
+        if not os.path.exists(file):
+            raise IOError("[Errno 2] No such file or directory: '%s'" % file)
         result = self.upload()
 
         c = pycurl.Curl()

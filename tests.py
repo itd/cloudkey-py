@@ -569,6 +569,9 @@ class CloudKeyFileTest(unittest.TestCase):
         self.assertEqual(media_info['name'], 'video')
         self.assertTrue('url' in media_info.keys())
 
+    def test_media_upload_nofile(self):
+        self.assertRaises(IOError, self.cloudkey.file.upload_file, '.fixtures/_video.3gp')
+
 class CloudKeyMediaListTest(unittest.TestCase):
 
     def setUp(self):
