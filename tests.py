@@ -34,8 +34,27 @@ else:
     if not SKIP_FARMER: print "Farmer tests will be skipped"
 
 import os, time
+import urlparse
 import unittest
 from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, AuthorizationRequired, AuthenticationFailed
+
+
+def wait_for_asset(media_id, asset_name, wait=60):
+    cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
+    for i in range(wait):
+        asset = cloudkey.media.get_asset(id=media_id, preset=asset_name)
+        if asset['status'] != 'ready':
+            if asset['status'] == 'error':
+                #print 'Asset couldn\'t be downloaded!'
+                return False
+            #print '%s not ready: %s' % (asset_name, asset['status'])
+            time.sleep(1)
+            continue
+        #print '%s ready' % asset_name
+        return True
+    #print self.cloudkey.media.list_asset()
+    raise Exception('timeout exceeded')
+
 
 class CloudKeyMediaDeleteTest(unittest.TestCase):
     def setUp(self):
@@ -198,8 +217,14 @@ class CloudKeyMediaMetaTest(unittest.TestCase):
 class CloudKeyMediaAssetUrl(unittest.TestCase):
 
     def setUp(self):
+
         self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
+        media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
+        media_url = media_info['url']
+        media = self.cloudkey.media.create()
+        self.media_id = media['id']
+        self.cloudkey.media.set_asset(id=self.media_id, preset='source', url=media_url)
 
     def tearDown(self):
         self.cloudkey.media.reset()
@@ -207,27 +232,35 @@ class CloudKeyMediaAssetUrl(unittest.TestCase):
     def test_media_get_asset_url_preview(self):
         preset = 'jpeg_thumbnail_small'
 
-        media_id = self.cloudkey.media.create()['id']
-        url = self.cloudkey.media.get_asset_url(id=media_id, preset=preset)
-        import urlparse
+        self.cloudkey.media.process_asset(id=self.media_id, preset=preset)
+        wait_for_asset(self.media_id, preset)
+        url = self.cloudkey.media.get_asset_url(id=self.media_id, preset=preset)
+
         parsed = urlparse.urlparse(url)
-        #self.assertEqual(parsed.netloc, 'static.dmcloud.net')
+        print parsed.netloc
         spath = parsed.path.split('/')
-        #self.assertEqual(len(spath), 4)
-        #self.assertEqual(spath[3].split('.')[0], preset)
+        self.assertEqual(len(spath), 4)
+        preset_name, ext = spath[-1].split('.')
+        self.assertTrue('-' in preset_name)
+        self.assertTrue(ext, preset.split('_')[0])
+        self.assertEqual(preset_name.split('-')[0], preset)
 
     def test_media_get_asset_url_video(self):
         preset = 'mp4_h264_aac'
 
-        media_id = self.cloudkey.media.create()['id']
-        url = self.cloudkey.media.get_asset_url(id=media_id, preset=preset)
-        import urlparse
+        self.cloudkey.media.process_asset(id=self.media_id, preset=preset)
+        wait_for_asset(self.media_id, preset)
+        url = self.cloudkey.media.get_asset_url(id=self.media_id, preset=preset)
+
         parsed = urlparse.urlparse(url)
-        #self.assertEqual(parsed.netloc, 'cdndirector.dmcloud.net')
+        self.assertTrue('cdn' in parsed.netloc)
         spath = parsed.path.split('/')
-        #self.assertEqual(len(spath), 5)
-        #self.assertEqual(spath[4].split('.')[0], preset)
-        #self.assertEqual(spath[1], 'route')
+        preset_name, ext = spath[-1].split('.')
+        self.assertTrue('-' in preset_name)
+        self.assertTrue(ext, preset.split('_')[0])
+        self.assertEqual(preset_name.split('-')[0], preset)
+        self.assertEqual(len(spath), 5)
+        self.assertEqual(spath[1], 'route')
 
 class CloudKeyMediaAssetTest(unittest.TestCase):
 
@@ -362,10 +395,10 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertTrue(res)
         res = self.cloudkey.media.get_asset(id= media['id'], preset='flv_h263_mp3')
         self.assertEqual(res['status'], 'ready')
-        self.assertEqual(set(res.keys()), set(['status', 'container', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created']))
+        self.assertEqual(set(res.keys()), set(['status', 'container', 'created', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created']))
         res = self.cloudkey.media.get_asset(id= media['id'], preset='mp4_h264_aac')
         self.assertEqual(res['status'], 'ready')
-        self.assertEqual(set(res.keys()), set(['status', 'container', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created']))
+        self.assertEqual(set(res.keys()), set(['status', 'container', 'created', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created']))
 
     def test_media_process_asset_alternative_source(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
@@ -445,7 +478,7 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
             res = self.cloudkey.media.get_asset(id= media['id'], preset=preset)
             self.assertEqual(res['status'], 'ready')
             if 'thumbnail' in preset:
-                attr = set(['status', 'container', 'name', 'video_height', 'file_size', 'video_codec', 'video_width', ])
+                attr = set(['status', 'container', 'name', 'video_height', 'file_size', 'video_codec', 'video_width', 'created'])
             else:
                 attr = set(['status', 'container', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created'])
             self.assertEqual(set(res.keys()), attr)
@@ -690,23 +723,23 @@ if ROOT_USERNAME and ROOT_PASSWORD and SWITCH_USER:
             self.assertEqual(res['username'], USERNAME)
 
         def test_super_user(self):
-            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD, base_url=BASE_URL)
             res = cloudkey.user.whoami()
             self.assertEqual(res['username'], ROOT_USERNAME)
 
         def test_super_user_su(self):
-            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD, base_url=BASE_URL)
             cloudkey.act_as_user(SWITCH_USER)
             res = cloudkey.user.whoami()
             self.assertEqual(res['username'], SWITCH_USER)
 
         def test_super_user_su_wrong_user(self):
-            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD, base_url=BASE_URL)
             cloudkey.act_as_user('unexisting_user')
             self.assertRaises(AuthenticationFailed, cloudkey.user.whoami)
 
         def test_su_cache(self):
-            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD)
+            cloudkey = CloudKey(ROOT_USERNAME, ROOT_PASSWORD, base_url=BASE_URL)
             res = cloudkey.user.whoami()
             self.assertEqual(res['username'], ROOT_USERNAME)
             cloudkey.act_as_user(SWITCH_USER)
