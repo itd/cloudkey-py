@@ -247,6 +247,17 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertNotEqual(res, None)
         self.assertEqual(res['status'], 'queued')
 
+    def test_media_set_asset_source_with_callback(self):
+        media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
+        media_url = media_info['url']
+
+        media = self.cloudkey.media.create()
+        res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url, callback_url='http://atm-02.int.dmcloud.net:5000/test')
+        self.assertNotEqual(res, None)
+        self.assertEqual(res['status'], 'queued')
+        res = self.wait_for_asset(media['id'], 'source')
+        self.assertTrue(res)
+
     def test_media_set_asset_existing_video(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
         media_url = media_info['url']
@@ -351,12 +362,38 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertTrue(res)
         res = self.cloudkey.media.get_asset(id= media['id'], preset='flv_h263_mp3')
         self.assertEqual(res['status'], 'ready')
-        self.assertEqual(set(res.keys()), set(['name', 'status', 'duration', 'filesize']))
+        self.assertEqual(set(res.keys()), set(['status', 'container', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created']))
         res = self.cloudkey.media.get_asset(id= media['id'], preset='mp4_h264_aac')
         self.assertEqual(res['status'], 'ready')
-        self.assertEqual(set(res.keys()), set(['name', 'status', 'duration', 'filesize']))
+        self.assertEqual(set(res.keys()), set(['status', 'container', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created']))
 
-#        my_broken_video.avi
+    def test_media_process_asset_alternative_source(self):
+        media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
+        media_url = media_info['url']
+
+        media = self.cloudkey.media.create()
+        res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
+        res = self.cloudkey.media.process_asset(id=media['id'], preset='mp4_h264_aac')
+        self.assertNotEqual(res, None)
+        res = self.wait_for_asset(media['id'], 'mp4_h264_aac')
+        self.assertTrue(res)
+        res = self.cloudkey.media.process_asset(id=media['id'], preset='flv_h263_mp3', source_preset='mp4_h264_aac')
+        self.assertNotEqual(res, None)
+        res = self.wait_for_asset(media['id'], 'flv_h263_mp3')
+        self.assertTrue(res)
+
+    def test_media_process_asset_alternative_source_depends(self):
+        media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
+        media_url = media_info['url']
+
+        media = self.cloudkey.media.create()
+        res = self.cloudkey.media.set_asset(id=media['id'], preset='source', url=media_url)
+        res = self.cloudkey.media.process_asset(id=media['id'], preset='mp4_h264_aac')
+        res = self.cloudkey.media.process_asset(id=media['id'], preset='flv_h263_mp3', source_preset='mp4_h264_aac')
+        res = self.wait_for_asset(media['id'], 'flv_h263_mp3')
+        self.assertTrue(res)
+        res = self.wait_for_asset(media['id'], 'mp4_h264_aac')
+        self.assertTrue(res)
 
     def test_media_process_asset_no_source(self):
         media = self.cloudkey.media.create()
@@ -407,7 +444,11 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
         for preset in presets:
             res = self.cloudkey.media.get_asset(id= media['id'], preset=preset)
             self.assertEqual(res['status'], 'ready')
-            self.assertEqual(set(res.keys()), set(['name', 'status', 'duration', 'filesize']))
+            if 'thumbnail' in preset:
+                attr = set(['status', 'container', 'name', 'video_height', 'file_size', 'video_codec', 'video_width', ])
+            else:
+                attr = set(['status', 'container', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created'])
+            self.assertEqual(set(res.keys()), attr)
 
     def test_publish_source_error(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/broken_video.avi')
@@ -511,7 +552,7 @@ class CloudKeyMediaListTest(unittest.TestCase):
     def test_list(self):
         medias = []
         for i in range(30):
-            medias.append({'meta': {}, 'id': self.cloudkey.media.create()['id'], 'assets': {}})
+            medias.append({'meta': {}, 'id': self.cloudkey.media.create()['id'], 'assets': []})
         res = self.cloudkey.media.list()
         self.assertEqual(len(res), 30)
 
@@ -614,6 +655,21 @@ class CloudKeyMediaTest(unittest.TestCase):
         self.assertEqual(type(media), dict)
         self.assertEqual(media.keys(), ['id'])
         self.assertEqual(len(media['id']), 24)
+
+
+class CloudKeyMediaStatsTest(unittest.TestCase):
+
+    def setUp(self):
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
+        self.cloudkey.media.reset()
+
+    def tearDown(self):
+        self.cloudkey.media.reset()
+
+    def test_media_stats(self):
+        media = self.cloudkey.media.create()
+
+        #print self.cloudkey.media.stats(id=media['id'])
 
 
 if ROOT_USERNAME and ROOT_PASSWORD and SWITCH_USER:
