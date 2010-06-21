@@ -237,7 +237,6 @@ class CloudKeyMediaAssetUrl(unittest.TestCase):
         url = self.cloudkey.media.get_asset_url(id=self.media_id, preset=preset)
 
         parsed = urlparse.urlparse(url)
-        print parsed.netloc
         spath = parsed.path.split('/')
         self.assertEqual(len(spath), 4)
         preset_name, ext = spath[-1].split('.')
