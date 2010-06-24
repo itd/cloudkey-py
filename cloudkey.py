@@ -5,6 +5,9 @@ import base64
 import simplejson as json
 import pycurl
 import StringIO
+import string
+import random
+import hashlib
 
 class ApiException(Exception): pass
 class AuthorizationRequired(ApiException): pass
@@ -15,14 +18,23 @@ class InvalidArgument(ApiException): pass
 class InvalidNamespace(Exception): pass
 class InvalidMethod(ApiException): pass
 
+class SecLevel:
+    NONE      = 0
+    DELEGATE  = 1 << 0
+    ASNUM     = 1 << 1
+    IP        = 1 << 2
+    USERAGENT = 1 << 3
+    USEONCE   = 1 << 4
+
 class Api(object):
     base_url = 'http://api.dmcloud.net'
 
-    def __init__(self, login, password, base_url, namespace=None, proxy=None, force_auth=True):
+    def __init__(self, login, password, base_url, namespace=None, proxy=None, parent=None, force_auth=True):
         self.login = login
         self.password = password
         if (base_url):
             self.base_url = base_url
+        self.parent = parent
         self.proxy = proxy
         self.extra_params = {}
         if self.__class__.__name__ != 'Api' and not namespace:
@@ -35,7 +47,7 @@ class Api(object):
         auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
 
         if self.proxy:
-            proxy_handler = urllib2.ProxyHandler({'http': self.proxt})
+            proxy_handler = urllib2.ProxyHandler({'http': self.proxy})
             self.opener = urllib2.build_opener(auth_handler, proxy_handler)
         else:
             self.opener = urllib2.build_opener(auth_handler)
@@ -94,6 +106,33 @@ class Api(object):
 
         return handler
 
+    def _sign_url(self, url, secret, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
+        # Normalize parameters
+        seclevel = seclevel or SecLevel.NONE
+        expires  = int(expires or 0)
+
+        # Compute digest
+        (url, unused, query) = url.partition('?')
+        secparams = ''
+        if not seclevel & SecLevel.DELEGATE:
+            if seclevel & SecLevel.ASNUM:
+                if not asnum:
+                    raise ValueError('ASNUM security level required and no AS number provided.')
+                secparams += asnum
+            if seclevel & SecLevel.IP:
+                if not ip:
+                    raise ValueError('IP security level required and no IP address provided.')
+                secparams += ip
+            if seclevel & SecLevel.USERAGENT:
+                if not useragent:
+                    raise ValueError('USERAGENT security level required and no user-agent provided.')
+                secparams += useragent
+        rand   = ''.join(random.choice(string.ascii_lowercase + string.digits) for unused in range(8))
+        digest = hashlib.md5('%d%s%d%s%s%s' % (seclevel, url, expires, rand, secret, secparams)).hexdigest()
+
+        # Return signed URL
+        return '%s?%sauth=%s-%s-%s-%s' % (url, (query + '&' if query else ''), expires, seclevel, rand, digest)
+
 class User(Api):
     def whoami(self):
         if '_whoami' not in dir(self):
@@ -122,7 +161,11 @@ class File(Api):
 
         return json.loads(response.getvalue())
 
-class Media(Api): pass
+class Media(Api):
+    def get_stream_url(self, format='swf', id=None, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
+        url = '%s/%s/stream/%s/%s' % (self.base_url, format, self.parent.user.whoami().get('id'), id)
+        return self._sign_url(url, self.parent.user.whoami().get('api_key'), seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
+
 class Farm(Api): pass
 
 class CloudKey(object):
@@ -158,7 +201,7 @@ class CloudKey(object):
             ns_class =  CloudKey.namespaces[namespace]
         except KeyError:
             raise InvalidNamespace(namespace)
-        namespace_obj = ns_class(self.login, self.password, self.base_url, self.proxy)
+        namespace_obj = ns_class(self.login, self.password, self.base_url, proxy=self.proxy, parent=self)
         if self._act_as_user:
             namespace_obj.extra_params['__user__'] = self._act_as_user
         setattr(self, namespace, namespace_obj);

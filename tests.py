@@ -36,7 +36,7 @@ else:
 import os, time
 import urlparse
 import unittest
-from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, AuthorizationRequired, AuthenticationFailed
+from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, AuthorizationRequired, AuthenticationFailed, SecLevel
 
 
 def wait_for_asset(media_id, asset_name, wait=60):
@@ -217,7 +217,6 @@ class CloudKeyMediaMetaTest(unittest.TestCase):
 class CloudKeyMediaAssetUrl(unittest.TestCase):
 
     def setUp(self):
-
         self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
         self.cloudkey.media.reset()
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
@@ -260,6 +259,21 @@ class CloudKeyMediaAssetUrl(unittest.TestCase):
         self.assertEqual(preset_name.split('-')[0], preset)
         self.assertEqual(len(spath), 5)
         self.assertEqual(spath[1], 'route')
+
+class CloudKeyMediaStreamUrl(unittest.TestCase):
+    def setUp(self):
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
+        self.cloudkey.media.reset()
+        media = self.cloudkey.media.create()
+        self.media_id = media['id']
+
+    def tearDown(self):
+        self.cloudkey.media.reset()
+
+    def test_media_get_stream_url(self):
+        url = self.cloudkey.media.get_stream_url(id=self.media_id)
+        # TODO test returned URL + sec levels
+        url = self.cloudkey.media.get_stream_url(id=self.media_id, seclevel=SecLevel.DELEGATE|SecLevel.IP, expires=time.time()+60*60)
 
 class CloudKeyMediaAssetTest(unittest.TestCase):
 
@@ -447,7 +461,7 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertEqual(res['status'], 'error')
         self.assertEqual(res['message'], 'The preset "flv_h263_mp3" already exists.')
         self.assertEqual(res['type'], 'AssetAlreadyExists')
-        
+
 
 class CloudKeyMediaPublishTest(unittest.TestCase):
 
