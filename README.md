@@ -108,18 +108,18 @@ Exceptions
 The Dailymotion Cloud API methods may throw exceptions when errors occur, and they should be catched in your
 code. The available exceptions are:
 
-- `cloudkey.ApiException:` an unexpected API response occured.
+- `cloudkey.ApiException`: an unexpected API response occured.
 
-- `cloudkey.InvalidNamespace:` an invalid namespace was used.
+- `cloudkey.InvalidNamespace`: an invalid namespace was used.
 
-- `cloudkey.InvalidMethod:` an invalid method was called.
+- `cloudkey.InvalidMethod`: an invalid method was called.
 
-- `cloudkey.NotFound:` an action was requested on an invalid item.
+- `cloudkey.NotFound`: an action was requested on an invalid item.
 
-- `cloudkey.MissingArgument:` a mandatory parameter was missing from a method call.
+- `cloudkey.MissingArgument`: a mandatory parameter was missing from a method call.
 
-- `cloudkey.InvalidArgument:` an invalid parameter was specified in a method call.
+- `cloudkey.InvalidArgument`: an invalid parameter was specified in a method call.
 
-- `cloudkey.AuthorizationRequired:` an authenticated method was call but no authentication information was provided.
+- `cloudkey.AuthorizationRequired`: an authenticated method was call but no authentication information was provided.
 
-- `cloudkey.AuthenticationFailed:` invalid authentication information was provided.
+- `cloudkey.AuthenticationFailed`: invalid authentication information was provided.
