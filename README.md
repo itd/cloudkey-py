@@ -79,8 +79,7 @@ Security level options
 ======================
 
 The security level defines the mechanism used by the Dailymotion Cloud architecture to ensure a mediastream
-URL access will be limited to a single user or a group of users. The different (combinable) available options
-are:
+URL access will be limited to a single user or a group of users. The different (combinable) options are:
 
 - `SecLevel.NONE`: the URL access is granted to everyone.
 
@@ -107,7 +106,7 @@ Exceptions
 ==========
 
 The Dailymotion Cloud API methods may throw exceptions when errors occur, and they should be catched in your
-code. Here is a list of exception which could be thrown:
+code. The available exceptions are:
 
 - `cloudkey.ApiException:` an unexpected API response occured.
 
