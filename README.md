@@ -39,7 +39,7 @@ a `dict`.
 
 Arguments:
 
-- 'path': (required) the path of the uploaded file.
+- `path`: (required) the path of the uploaded file.
 
 Example:
 
