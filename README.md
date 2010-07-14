@@ -72,7 +72,7 @@ access denials, mainly due to GeoIP databases discrepancies.
 
 Example:
 
-    // Create a media stream URL limited only to the AS of the end-user and valid for 1 hour
+    // Create a mediastream URL limited only to the AS of the end-user and valid for 1 hour
     url = cloudkey.media.get_stream_url(id=media['id'], seclevel=SecLevel.DELEGATE | SecLevel.ASNUM, expires=time() + 3600)
 
 Security level options
