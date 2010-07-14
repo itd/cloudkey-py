@@ -20,16 +20,16 @@ except ImportError:
 if not USERNAME: USERNAME = raw_input('Username: ')
 if not PASSWORD: PASSWORD = raw_input('Password: ')
 
-if not SKIP_SU and not ROOT_USERNAME: ROOT_USERNAME = raw_input('Root Username (optional): ')
+if not SKIP_SU and not ROOT_USERNAME: ROOT_USERNAME = raw_input('Root username (optional): ')
 if ROOT_USERNAME:
-    if not ROOT_PASSWORD: ROOT_PASSWORD = raw_input('Root Password: ')
-    if not SWITCH_USER: SWITCH_USER = raw_input('SU Username (optional): ')
+    if not ROOT_PASSWORD: ROOT_PASSWORD = raw_input('Root password: ')
+    if not SWITCH_USER: SWITCH_USER = raw_input('SU username (optional): ')
 else:
     if not SKIP_SU: print "SU tests will be skipped"
-if not SKIP_FARMER and not FARMER_USERNAME: FARMER_USERNAME = raw_input('Farmer Username (optional): ')
+if not SKIP_FARMER and not FARMER_USERNAME: FARMER_USERNAME = raw_input('Farmer username (optional): ')
 if FARMER_USERNAME:
-    if not FARMER_PASSWORD: FARMER_PASSWORD = raw_input('Farmer Password: ')
-    if not FARMER_FARM: FARMER_FARM = raw_input('Farmer Farm: ')
+    if not FARMER_PASSWORD: FARMER_PASSWORD = raw_input('Farmer password: ')
+    if not FARMER_FARM: FARMER_FARM = raw_input('Farmer farm: ')
 else:
     if not SKIP_FARMER: print "Farmer tests will be skipped"
 
@@ -38,21 +38,16 @@ import urlparse
 import unittest
 from cloudkey import CloudKey, NotFound, InvalidArgument, MissingArgument, AuthorizationRequired, AuthenticationFailed, SecLevel
 
-
 def wait_for_asset(media_id, asset_name, wait=60):
     cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
     for i in range(wait):
         asset = cloudkey.media.get_asset(id=media_id, preset=asset_name)
         if asset['status'] != 'ready':
             if asset['status'] == 'error':
-                #print 'Asset couldn\'t be downloaded!'
                 return False
-            #print '%s not ready: %s' % (asset_name, asset['status'])
             time.sleep(1)
             continue
-        #print '%s ready' % asset_name
         return True
-    #print self.cloudkey.media.list_asset()
     raise Exception('timeout exceeded')
 
 
@@ -134,12 +129,10 @@ class CloudKeyMediaMetaTest(unittest.TestCase):
         self.assertEqual(res['value'], 'my_value')
 
     def test_media_not_found(self):
-        self.assertRaises(NotFound, self.cloudkey.media.set_meta,
-                          id='1b87186c84e1b015a0000000', key='mykey', value='my_value')
+        self.assertRaises(NotFound, self.cloudkey.media.set_meta, id='1b87186c84e1b015a0000000', key='mykey', value='my_value')
 
     def test_invalid_media_id(self):
-        self.assertRaises(InvalidArgument, self.cloudkey.media.set_meta,
-                          id='b87186c84e1b015a0000000', key='mykey', value='my_value')
+        self.assertRaises(InvalidArgument, self.cloudkey.media.set_meta, id='b87186c84e1b015a0000000', key='mykey', value='my_value')
 
     def test_missing_argument(self):
         media = self.cloudkey.media.create()
@@ -184,8 +177,6 @@ class CloudKeyMediaMetaTest(unittest.TestCase):
 
     def test_invalid_key(self):
         media = self.cloudkey.media.create()
-
-        #self.cloudkey.media.get_meta(id=media['id'], key=100)
 
     def test_list(self):
         media = self.cloudkey.media.create()
@@ -322,15 +313,11 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
     def wait_for_asset(self, media_id, asset_name, wait=60):
         for i in range(wait):
             asset = self.cloudkey.media.get_asset(id=media_id, preset=asset_name)
-            #print asset
             if asset['status'] != 'ready':
                 if asset['status'] == 'error':
-                    #print 'Asset couldn\'t be downloaded!'
                     return False
-                #print '%s not ready: %s' % (asset_name, asset['status'])
                 time.sleep(1)
                 continue
-            #print '%s ready' % asset_name
             return True
         raise Exception('timeout exceeded')
 
@@ -497,7 +484,7 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
             self.assertEqual(set(res.keys()), attr)
 
     def test_publish_source_error(self):
-        media_info = self.cloudkey.file.upload_file('.fixtures/broken_video.avi')
+        media_info = self.cloudkey.file.upload_file('.fixtures/broken.avi')
         media_url = media_info['url']
 
         presets = ['flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq']
@@ -529,7 +516,7 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
             self.assertEqual(res.keys(), ['status', 'name'])
 
     def test_publish_duplicate_preset_error(self):
-        media_info = self.cloudkey.file.upload_file('.fixtures/broken_video.avi')
+        media_info = self.cloudkey.file.upload_file('.fixtures/broken.avi')
         media_url = media_info['url']
 
         presets = ['mp4_h264_aac', 'mp4_h264_aac']
@@ -541,14 +528,10 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
             asset = self.cloudkey.media.get_asset(id=media_id, preset=asset_name)
             if asset['status'] != 'ready':
                 if asset['status'] == 'error':
-                    #print 'Asset couldn\'t be downloaded!'
                     return False
-                #print '%s not ready: %s' % (asset_name, asset['status'])
                 time.sleep(1)
                 continue
-            #print '%s ready' % asset_name
             return True
-        #print self.cloudkey.media.list_asset()
         raise Exception('timeout exceeded')
 
 
@@ -583,7 +566,7 @@ class CloudKeyFileTest(unittest.TestCase):
         self.assertTrue('url' in media_info.keys())
 
     def test_media_upload_nofile(self):
-        self.assertRaises(IOError, self.cloudkey.file.upload_file, '.fixtures/_video.3gp')
+        self.assertRaises(IOError, self.cloudkey.file.upload_file, '.fixtures/nofile.mov')
 
 class CloudKeyMediaListTest(unittest.TestCase):
 
@@ -717,8 +700,6 @@ class CloudKeyMediaStatsTest(unittest.TestCase):
 
     def test_media_stats(self):
         media = self.cloudkey.media.create()
-
-        #print self.cloudkey.media.stats(id=media['id'])
 
 
 if ROOT_USERNAME and ROOT_PASSWORD and SWITCH_USER:
