@@ -155,7 +155,7 @@ class File(Api):
         result = self.upload()
 
         c = pycurl.Curl()
-        c.setopt(pycurl.URL, result['url'])
+        c.setopt(pycurl.URL, str(result['url']))
         c.setopt(pycurl.FOLLOWLOCATION, True)
         c.setopt(pycurl.HTTPPOST, [('file', (pycurl.FORM_FILE, file))])
 
