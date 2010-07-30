@@ -2,7 +2,10 @@ import os
 import urllib
 import urllib2
 import base64
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import pycurl
 import StringIO
 import string

@@ -15,6 +15,7 @@ FARMER_FARM=None
 try:
     from local_config import *
 except ImportError:
+    print 'No local_config.py found!'
     pass
 
 if not USERNAME: USERNAME = raw_input('Username: ')
