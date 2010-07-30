@@ -2,12 +2,13 @@ import os
 import urllib
 import urllib2
 import base64
-import simplejson as json
+import json
 import pycurl
 import StringIO
 import string
 import random
 import hashlib
+from time import time
 
 class ApiException(Exception): pass
 class AuthorizationRequired(ApiException): pass
@@ -28,12 +29,15 @@ class SecLevel:
 
 class Api(object):
     base_url = 'http://api.dmcloud.net'
+    cdn_url  = 'http://cdn.dmcloud.net'
 
-    def __init__(self, login, password, base_url, namespace=None, proxy=None, parent=None, force_auth=True):
+    def __init__(self, login, password, base_url, cdn_url=None, namespace=None, proxy=None, parent=None, force_auth=True):
         self.login = login
         self.password = password
         if (base_url):
             self.base_url = base_url
+        if (cdn_url):
+            self.cdn_url = cdn_url
         self.parent = parent
         self.proxy = proxy
         self.extra_params = {}
@@ -109,7 +113,7 @@ class Api(object):
     def _sign_url(self, url, secret, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
         # Normalize parameters
         seclevel = seclevel or SecLevel.NONE
-        expires  = int(expires or 0)
+        expires  = int(expires or time() + 7200)
 
         # Compute digest
         (url, unused, query) = url.partition('?')
@@ -162,8 +166,12 @@ class File(Api):
         return json.loads(response.getvalue())
 
 class Media(Api):
-    def get_stream_url(self, format='swf', id=None, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
-        url = '%s/%s/stream/%s/%s' % (self.base_url, format, self.parent.user.whoami().get('id'), id)
+    def get_embed_url(self, id=None, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
+        url = '%s/embed/%s/%s' % (self.base_url, self.parent.user.whoami().get('id'), id)
+        return self._sign_url(url, self.parent.user.whoami().get('api_key'), seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
+
+    def get_stream_url(self, id=None, preset='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
+        url = '%s/route/%s/%s/%s.%s' % (self.cdn_url, self.parent.user.whoami().get('id'), id, preset, preset.split('_')[0])
         return self._sign_url(url, self.parent.user.whoami().get('api_key'), seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
 
 class Farm(Api): pass
@@ -172,10 +180,11 @@ class CloudKey(object):
     namespaces = {}
     loaded = False
 
-    def __init__(self, login, password, base_url=None, proxy=None):
+    def __init__(self, login, password, base_url=None, cdn_url=None, proxy=None):
         self.login = login;
         self.password = password
         self.base_url = base_url
+        self.cdn_url = cdn_url
         self.proxy = proxy
         self._act_as_user = None
 

@@ -48,19 +48,17 @@ Example:
     media = cloudkey.media.create()
     cloudkey.media.set_asset(id=media['id'], preset='source', url=file['url'])
 
-`media.get_stream_url(id)`
---------------------------
+`media.get_embed_url(id)`
+-------------------------
 
-This method returns a signed URL to the Dalymotion Cloud `mediastream` component (see the API refernce
-for details). The generated URL is perishable, and access is granted based on the provided security level
-bitmask.
+This method returns a signed URL to a Dailymotion Cloud player embed (see the API reference for details).
+The generated URL is perishable, and access is granted based on the provided security level bitmask.
 
 Arguments:
 
 - `id`: (required) the media id.
-- `format`: the component output format (default is `'swf'` and currently is the only available format).
 - `seclevel`: the security level bitmask (default is `SecLevel.NONE`, see below for details).
-- `expires`: the UNIX epoch expiration time (default is `None`).
+- `expires`: the UNIX epoch expiration time (default is `time() + 7200` (2 hours from now)).
 
 The following arguments may be required if the `SecLevel.DELEGATE` option is not specified in the seclevel
 parameter, depending on the other options. This is not recommanded as it would probably lead to spurious
@@ -72,7 +70,33 @@ access denials, mainly due to GeoIP databases discrepancies.
 
 Example:
 
-    // Create a mediastream URL limited only to the AS of the end-user and valid for 1 hour
+    // Create an embed URL limited only to the AS of the end-user and valid for 1 hour
+    url = cloudkey.media.get_embed_url(id=media['id'], seclevel=SecLevel.DELEGATE | SecLevel.ASNUM, expires=time() + 3600)
+
+`media.get_stream_url(id)`
+--------------------------
+
+This method returns a signed URL to a Dailymotion Cloud video stream (see the API reference for details).
+The generated URL is perishable, and access is granted based on the provided security level bitmask.
+
+Arguments:
+
+- `id`: (required) the media id.
+- `preset`: the desired media asset preset name (default is `mp4_h264_aac`).
+- `seclevel`: the security level bitmask (default is `SecLevel.NONE`, see below for details).
+- `expires`: the UNIX epoch expiration time (default is `time() + 7200` (2 hours from now)).
+
+The following arguments may be required if the `SecLevel.DELEGATE` option is not specified in the seclevel
+parameter, depending on the other options. This is not recommanded as it would probably lead to spurious
+access denials, mainly due to GeoIP databases discrepancies.
+
+- `asnum`: the client's autonomous system number (default is `None`).
+- `ip`: the client's IP adress (default is `None`).
+- `useragent`: the client's HTTP User-Agent header (default is `None`).
+
+Example:
+
+    // Create a stream URL limited only to the AS of the end-user and valid for 1 hour
     url = cloudkey.media.get_stream_url(id=media['id'], seclevel=SecLevel.DELEGATE | SecLevel.ASNUM, expires=time() + 3600)
 
 Security level options
