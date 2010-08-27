@@ -29,6 +29,8 @@ class SecLevel:
     IP        = 1 << 2
     USERAGENT = 1 << 3
     USEONCE   = 1 << 4
+    COUNTRY   = 1 << 5
+    REFERER   = 1 << 6
 
 class Api(object):
     base_url = 'http://api.dmcloud.net'
@@ -115,7 +117,7 @@ class Api(object):
 
         return handler
 
-    def _sign_url(self, url, secret, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
+    def _sign_url(self, url, secret, seclevel=None, asnum=None, ip=None, useragent=None, referers=[], countries=[], expires=None):
         # Normalize parameters
         seclevel = seclevel or SecLevel.NONE
         expires  = int(expires or time() + 7200)
@@ -123,6 +125,7 @@ class Api(object):
         # Compute digest
         (url, unused, query) = url.partition('?')
         secparams = ''
+        public_secparams = []
         if not seclevel & SecLevel.DELEGATE:
             if seclevel & SecLevel.ASNUM:
                 if not asnum:
@@ -136,11 +139,33 @@ class Api(object):
                 if not useragent:
                     raise ValueError('USERAGENT security level required and no user-agent provided.')
                 secparams += useragent
+            if seclevel & SecLevel.COUNTRY:
+                if not countries or len(countries) == 0:
+                    raise ValueError('COUNTRY security level required and no coutry list provided.')
+                if type(countries) is not list:
+                    raise ValueError('Invalid format for COUNTRY, should be a list of country codes.')
+                if countries[0] == '-':
+                    countries = '-' + ','.join(countries[1:])
+                else:
+                    countries = ','.join(countries)
+                if not match(r'^-?(?:[a-zA-Z]{2})(:?,[a-zA-Z]{2})*$', countries):
+                    raise ValueError('Invalid format for COUNTRY security level parameter.')
+                public_secparams.append('cc=%s' % countries.lower())
+            if seclevel & SecLevel.REFERER:
+                if not referers or len(referers) == 0:
+                    raise ValueError('REFERER security level required and no referer list provided.')
+                if type(referers) is not list:
+                    raise ValueError('Invalid format for REFERER, should be a list of url strings.')
+                public_secparams.append('rf=%s' % quote_plus(' '.join([referer.replace(' ', '%20') for referer in referers])))
+
+        public_secparams_encoded = ''
+        if len(public_secparams) > 0:
+            public_secparams_encoded = base64.b64encode(zlib.compress('&'.join(public_secparams)))
         rand   = ''.join(random.choice(string.ascii_lowercase + string.digits) for unused in range(8))
-        digest = hashlib.md5('%d%s%d%s%s%s' % (seclevel, url, expires, rand, secret, secparams)).hexdigest()
+        digest = hashlib.md5('%d%s%d%s%s%s%s' % (seclevel, url, expires, rand, secret, secparams, public_secparams_encoded)).hexdigest()
 
         # Return signed URL
-        return '%s?%sauth=%s-%s-%s-%s' % (url, (query + '&' if query else ''), expires, seclevel, rand, digest)
+        return '%s?%sauth=%s-%s-%s-%s%s' % (url, (query + '&' if query else ''), expires, seclevel, rand, digest, ('-' + public_secparams_encoded if public_secparams_encoded else ''))
 
 class User(Api):
     def whoami(self):
