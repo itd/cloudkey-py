@@ -11,6 +11,7 @@ SKIP_FARMER=True
 FARMER_USERNAME=None
 FARMER_PASSWORD=None
 FARMER_FARM=None
+FARMER_URL=None
 
 try:
     from local_config import *
@@ -702,6 +703,68 @@ class CloudKeyMediaStatsTest(unittest.TestCase):
     def test_media_stats(self):
         media = self.cloudkey.media.create()
 
+        #print self.cloudkey.media.stats(id=media['id'])
+
+class CloudKeyUserAssetsTest(unittest.TestCase):
+
+    def setUp(self):
+        self.cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
+        self.cloudkey.user.reset_encoding_settings()
+
+    def tearDown(self):
+        self.cloudkey.user.reset_encoding_settings()
+
+    def test_enable_asset(self):
+        self.cloudkey.user.enable_asset(asset='flv_h263_mp3')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, ['flv_h263_mp3'])
+        self.cloudkey.user.enable_asset(asset='flv_h263_mp3')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, ['flv_h263_mp3'])
+        self.cloudkey.user.enable_asset(asset='mp4_h264_aac')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, ['flv_h263_mp3', 'mp4_h264_aac'])
+
+    def test_disable_asset(self):
+        self.cloudkey.user.enable_asset(asset='flv_h263_mp3')
+        self.cloudkey.user.enable_asset(asset='mp4_h264_aac')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, ['flv_h263_mp3', 'mp4_h264_aac'])
+        self.cloudkey.user.disable_asset(asset='flv_h263_mp3')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, ['mp4_h264_aac'])
+        self.cloudkey.user.disable_asset(asset='flv_h263_mp3')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, ['mp4_h264_aac'])
+        self.cloudkey.user.disable_asset(asset='mp4_h264_aac')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, [])
+
+    def test_get_active_assets(self):
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, [])
+
+        self.cloudkey.user.enable_asset(asset='flv_h263_mp3')
+        self.cloudkey.user.enable_asset(asset='mp4_h264_aac')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, ['flv_h263_mp3', 'mp4_h264_aac'])
+
+        self.cloudkey.user.disable_asset(asset='flv_h263_mp3')
+        self.cloudkey.user.disable_asset(asset='mp4_h264_aac')
+        presets = self.cloudkey.user.get_active_assets()
+        self.assertEqual(presets, [])
+
+    def test_get_set_delete_asset_settings(self):
+        pass
+
+    def test_get_set_asset_setting(self):
+        for preset in ('flv_h263_mp3', 'flv_h263_mp3_ld', 'mp4_h264_aac'):
+            self.cloudkey.user.set_asset_setting(asset=preset, setting='abitrate', value='128')
+            res = self.cloudkey.user.get_asset_setting(asset=preset, setting='abitrate')
+            self.assertEqual(res, '128')
+            self.cloudkey.user.set_asset_setting(asset=preset, setting='vbitrate', value='1024')
+            res = self.cloudkey.user.get_asset_setting(asset=preset, setting='vbitrate')
+            self.assertEqual(res, '1024')
 
 if ROOT_USERNAME and ROOT_PASSWORD and SWITCH_USER:
     class CloudKeyAuthTest(unittest.TestCase):
@@ -747,7 +810,7 @@ if ROOT_USERNAME and ROOT_PASSWORD and SWITCH_USER:
 if FARMER_USERNAME and FARMER_PASSWORD and FARMER_FARM:
     class CloudKeyFarmTest(unittest.TestCase):
         def setUp(self):
-            self.cloudkey = CloudKey(FARMER_USERNAME, FARMER_PASSWORD)
+            self.cloudkey = CloudKey(FARMER_USERNAME, FARMER_PASSWORD, base_url=FARMER_URL)
 
         def tearDown(self):
             self.cloudkey.farm.remove(name=FARMER_FARM)
@@ -807,6 +870,23 @@ if FARMER_USERNAME and FARMER_PASSWORD and FARMER_FARM:
                 self.assertEqual(node['weight'], 1)
                 self.assertEqual(node['comment'], '')
                 self.assertEqual(node['name'][:5], 'node-')
+
+        def test_select_node(self):
+            nodes = ['node-%s.dailymotion.com' % i for i in range(10)]
+            for node in nodes:
+                res = self.cloudkey.farm.add_node(name=FARMER_FARM, node=node, enabled=True, weight=10)
+                self.assertEqual(res, None)
+            
+            res1 = {}
+            for node in nodes:
+                res1[node] = self.cloudkey.farm.select_node(name=FARMER_FARM, content=node)
+            
+            res2 = {}
+            for node in nodes:
+                res2[node] = self.cloudkey.farm.select_node(name=FARMER_FARM, content=node)
+
+            for node in nodes:
+                self.assertEqual(res1[node], res2[node])
 
 if __name__ == '__main__':
     unittest.main()
