@@ -1,8 +1,5 @@
 """Dailymotion Cloud RPC loosely based on JSON-RPC"""
 
-import sys
-sys.path.insert(0, '/home/sebest/work/cloud_rpc/')
-
 import os
 import StringIO
 import string
