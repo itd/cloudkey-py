@@ -5,16 +5,18 @@ import StringIO
 import string
 import random
 import hashlib
-from time import time
+import datetime
+import time
 try:
     import json
 except ImportError:
     import simplejson as json
 import pycurl
 
-# TODO: import the usefull methods and class in this file to make it autonomous
-from cloud.rpc import HttpTransport, JSONSerializer, DefaultAuthGenerator, Client, ClientService
 
+#
+# Common
+#
 class SecLevel:
     NONE      = 0
     DELEGATE  = 1 << 0
@@ -28,7 +30,7 @@ class SecLevel:
 def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
     # Normalize parameters
     seclevel = seclevel or SecLevel.NONE
-    expires  = int(expires or time() + 7200)
+    expires  = int(expires or time.time() + 7200)
 
     # Compute digest
     (url, unused, query) = url.partition('?')
@@ -75,6 +77,219 @@ def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, ex
     # Return signed URL
     return '%s?%sauth=%s-%s-%s-%s%s' % (url, (query + '&' if query else ''), expires, seclevel, rand, digest, ('-' + public_secparams_encoded if public_secparams_encoded else ''))
 
+def normalize_arg(arg=None):
+    """Normalizes an argument for signing purpose.
+    
+    This is used for normalizing the arguments of RPC method calls.
+    
+    :param arg: The argument to normalize
+    
+    :return: A string representating the normalized argument.
+    
+    .. doctest::
+    
+     >>> from cloud.rpc import normalize_arg
+     >>> normalize_arg(['foo', 42, 'bar'])
+     'foo,42,bar,'
+     >>> normalize_arg({'yellow': 1, 'red': 2, 'pink' : 3})
+     'pink=3,red=2,yellow=1,'
+     >>> normalize_arg(['foo', 42, {'yellow': 1, 'red': 2, 'pink' : 3}, 'bar'])
+     'foo,42,[pink=3,red=2,yellow=1,],bar,'    
+    """
+    res = ''
+
+    if type(arg) in (list, tuple):
+        for i in arg:
+            if type(i) in (dict, list, tuple):
+                i ='[%s]' % normalize_arg(i)
+            res += '%s,' % i
+        
+    elif type(arg) is dict:
+        keys = arg.keys()
+        keys.sort()
+        for key in keys:
+            i = arg[key]
+            if type(i) in (dict, list, tuple):
+                i ='[%s]' % normalize_arg(i)
+            res += '%s=%s,' % (key, i)
+
+    else:
+        res = str(arg)
+
+    return res
+
+def sign(shared_secret, msg):
+    """Signs a message using a shared secret.
+    
+    :param shared_secret: The shared secret used to sign the message
+    :param msg: The message to sign
+    
+    :return: The signature as a string
+
+    .. doctest::
+    
+     >>> from cloud.rpc import sign
+     >>> sign('sEcReT_KeY', 'hello world')
+     '5f048ebaf6f06576b60716dc8f815d85'
+    """
+    m = hashlib.md5()
+    m.update(msg + ':' + shared_secret)
+    return m.hexdigest()
+
+#################################################################################
+class RPCException(Exception):
+    """Base class for all RPC exceptions.
+    """
+    code = 100
+
+    def __init__(self, message, data=None):
+        self.message = message
+        self.data = data
+
+    def __str__(self):
+        msg = '%d: %s' % (self.code, self.message)
+        if self.data:
+            msg = '%s [%s]' % (msg, self.data)
+        return msg
+
+class ProcessorException(RPCException):
+    """Base class for all Processor exceptions
+    """
+    code = 200
+
+class TransportException(RPCException):
+    """Exceptions in transport layer
+    """
+    code = 300
+
+class AuthenticationError(RPCException):
+    """Base class for all Auth exceptions.
+    """
+    code = 400
+
+class RateLimitExceeded(AuthenticationError):
+    code = 410
+
+class SerializerError(RPCException):
+    code = 500
+
+class InvalidRequest(RPCException):
+    code = 600
+
+class InvalidService(InvalidRequest):
+    code = 610
+
+class InvalidMethod(InvalidRequest):
+    code = 620
+
+class InvalidParameter(InvalidRequest):
+    code = 630
+
+class ApplicationException(RPCException):
+    code = 1000
+
+class NotFound(ApplicationException):
+    code = 1010
+
+class Exists(ApplicationException):
+    code = 1020
+
+class LimitExceeded(ApplicationException):
+    code = 1030
+
+def RPCException_handler(error):
+    # TODO Autogenerate this dict by introspection
+    exceptions = {
+        200: ProcessorException,
+        300: TransportException,
+        400: AuthenticationError,
+        410: RateLimitExceeded,
+        500: SerializerError,
+        600: InvalidRequest,
+        610: InvalidService,
+        620: InvalidMethod,
+        630: InvalidParameter,
+        1000: ApplicationException,
+        1010: NotFound,
+        1020: Exists,
+        1030: LimitExceeded,
+        }
+
+    e = exceptions.get(error['code'], RPCException)
+    return e(error['message'], error.get('data', None))
+
+
+class JSONEncoder(json.JSONEncoder):
+    """Extends JSON encoder to handle types like datetime
+    
+    .. doctest::
+    
+     >>> import json
+     >>> from datetime import datetime
+     >>> from cloud.rpc import JSONEncoder
+     >>> my_date = datetime(year=2010, month=04, day=11)
+     >>> json.dumps(my_date, cls=JSONEncoder)
+     '1270936800'
+    """
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return int(time.mktime(obj.timetuple()))
+        return json.JSONEncoder.default(self, obj)
+
+
+class ClientService(object):
+
+    def __init__(self, client, name):
+        self._client = client
+        self._name = name
+        
+    def __getattr__(self, method):
+
+        def func(*args, **kwargs):
+            request = {
+                'service': self._name,
+                'method': method,
+                'args': args,
+                'kwargs': kwargs,
+                }
+
+            if not self._client._act_as_user:
+                user_infos = self._client._user_id
+            else:
+                user_infos = "%s/%s" % (self._client._user_id, self._client._act_as_user)
+            request['auth'] = user_infos + ':' + sign(self._client._api_key, user_infos + normalize_arg(request))
+
+
+            c = pycurl.Curl()
+            c.setopt(pycurl.URL, self._client._api_endpoint)
+            c.setopt(pycurl.HTTPHEADER, ["Content-Type: application/json"])
+
+            c.setopt(pycurl.POSTFIELDS, json.dumps(request, cls=JSONEncoder))
+
+            if self._client._proxy:
+                c.setopt(pycurl.PROXY, self._client._proxy)
+
+            response = StringIO.StringIO()
+            c.setopt(pycurl.WRITEFUNCTION, response.write)
+            
+            try:
+                c.perform()
+            except pycurl.error, e:
+                raise TransportException(str(e))
+            c.close()
+
+            try:
+                msg = json.loads(response.getvalue())
+            except (TypeError, ValueError), e:
+                raise SerializerError(str(e))
+            error = msg.get('error', None)
+            if error:
+                raise RPCException_handler(error)
+            return msg.get('result')
+
+        return func
+
+
 class FileService(ClientService):
 
     def upload_file(self, file):
@@ -87,13 +302,16 @@ class FileService(ClientService):
         c.setopt(pycurl.FOLLOWLOCATION, True)
         c.setopt(pycurl.HTTPPOST, [('file', (pycurl.FORM_FILE, file))])
 
-        #if self.proxy:
-        #    c.setopt(pycurl.PROXY, self.proxy)
+        if self._client._proxy:
+            c.setopt(pycurl.PROXY, self._client._proxy)
 
         response = StringIO.StringIO()
         c.setopt(pycurl.WRITEFUNCTION, response.write)
 
-        c.perform()
+        try:
+            c.perform()
+        except pycurl.error, e:
+            raise TransportException(str(e))
         c.close()
 
         return json.loads(response.getvalue())
@@ -102,36 +320,31 @@ class FileService(ClientService):
 class MediaService(ClientService):
 
     def get_embed_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
-        url = '%s/embed/%s/%s' % (self._base_url, self._user_id, id)
-        return sign_url(url, self._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
+        url = '%s/embed/%s/%s' % (self._client._base_url, self._client._user_id, id)
+        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
 
     def get_stream_url(self, id, preset='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, expires=None, cdn_url='http://cdn.dmcloud.net'):
-        url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._user_id, id, preset, preset.split('_')[0])
-        return sign_url(url, self._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
+        url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._client._user_id, id, preset, preset.split('_')[0])
+        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
 
 
 class CloudKey(object):
 
-    def __init__(self, user_id, api_key, base_url='http://api.dmcloud.net'):
-        self.user_id = user_id
-        self.api_key = api_key
-        self.base_url = base_url
-        self.auth = DefaultAuthGenerator(str(user_id), str(api_key))
-        t = HttpTransport(base_url + '/api')
-        s = JSONSerializer()
-
-        self.client = Client(t, s, self.auth)
+    def __init__(self, user_id, api_key, base_url='http://api.dmcloud.net', proxy=None):
+        self._user_id = user_id if user_id else ''
+        self._api_key = api_key if api_key else ''
+        self._base_url = base_url
+        self._act_as_user = None
+        self._api_endpoint =  base_url + '/api'
+        self._proxy = proxy
 
     def __getattr__(self, method):
         if method == 'file':
-            return FileService(self.client, method)
+            return FileService(self, method)
         if method == 'media':
-            media = MediaService(self.client, method)
-            media._user_id = self.user_id
-            media._api_key = self.api_key
-            media._base_url = self.base_url
+            media = MediaService(self, method)
             return media
-        return ClientService(self.client, method)
+        return ClientService(self, method)
 
     def act_as_user(self, user):
-        self.auth.act_as_user(user)
+        self._act_as_user = user

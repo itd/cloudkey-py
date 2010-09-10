@@ -43,9 +43,7 @@ from cloudkey import CloudKey
 from cloudkey import SecLevel
 
 # TODO: import the usefull methods and class in this file to make it autonomous
-import sys
-sys.path.insert(0, '/home/sebest/work/cloud_rpc/')
-from cloud.rpc import AuthenticationError, NotFound, InvalidParameter, Exists
+from cloudkey import AuthenticationError, NotFound, InvalidParameter, Exists
 
 def wait_for_asset(media_id, asset_name, wait=60):
     cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
