@@ -77,7 +77,7 @@ def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, ex
     # Return signed URL
     return '%s?%sauth=%s-%s-%s-%s%s' % (url, (query + '&' if query else ''), expires, seclevel, rand, digest, ('-' + public_secparams_encoded if public_secparams_encoded else ''))
 
-def normalize_arg(arg=None):
+def normalize(arg=None):
     """Normalizes an argument for signing purpose.
     
     This is used for normalizing the arguments of RPC method calls.
@@ -88,12 +88,12 @@ def normalize_arg(arg=None):
     
     .. doctest::
     
-     >>> from cloud.rpc import normalize_arg
-     >>> normalize_arg(['foo', 42, 'bar'])
+     >>> from cloud.rpc import normalize
+     >>> normalize(['foo', 42, 'bar'])
      'foo42bar'
-     >>> normalize_arg({'yellow': 1, 'red': 2, 'pink' : 3})
+     >>> normalize({'yellow': 1, 'red': 2, 'pink' : 3})
      'pink3red2yellow1'
-     >>> normalize_arg(['foo', 42, {'yellow': 1, 'red': 2, 'pink' : 3}, 'bar'])
+     >>> normalize(['foo', 42, {'yellow': 1, 'red': 2, 'pink' : 3}, 'bar'])
      'foo42pink3red2yellow1bar'    
     """
     res = ''
@@ -101,7 +101,7 @@ def normalize_arg(arg=None):
     if type(arg) in (list, tuple):
         for i in arg:
             if type(i) in (dict, list, tuple):
-                i = normalize_arg(i)
+                i = normalize(i)
             res += str(i)
         
     elif type(arg) is dict:
@@ -110,7 +110,7 @@ def normalize_arg(arg=None):
         for key in keys:
             i = arg[key]
             if type(i) in (dict, list, tuple):
-                i = normalize_arg(i)
+                i = normalize(i)
             res += '%s%s' % (key, i)
 
     else:
@@ -257,7 +257,7 @@ class ClientService(object):
                 user_infos = self._client._user_id
             else:
                 user_infos = "%s/%s" % (self._client._user_id, self._client._act_as_user)
-            request['auth'] = user_infos + ':' + sign(self._client._api_key, user_infos + normalize_arg(request))
+            request['auth'] = user_infos + ':' + sign(self._client._api_key, user_infos + normalize(request))
 
 
             c = pycurl.Curl()
