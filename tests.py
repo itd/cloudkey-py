@@ -757,34 +757,34 @@ class CloudKeyUserTest(unittest.TestCase):
 
     def tearDown(self):
         for user_id in self.user_ids:
-            self.cloudkey.user.delete(user_id)
+            self.cloudkey.user.delete(id=user_id)
             
     def test_perm(self):
         cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
-        self.assertRaises(AuthenticationError, cloudkey.user.create, 'titi', 'toto')
-        self.assertRaises(AuthenticationError, cloudkey.user.info, 'titi')
-        self.assertRaises(AuthenticationError, cloudkey.user.delete, 'titi')
+        self.assertRaises(AuthenticationError, cloudkey.user.create, username='titi', password='toto')
+        self.assertRaises(AuthenticationError, cloudkey.user.info, id='titi')
+        self.assertRaises(AuthenticationError, cloudkey.user.delete, id='titi')
         self.assertRaises(AuthenticationError, cloudkey.user.list)
         self.assertEqual(cloudkey.user.info()['username'], USERNAME)
 
     def test_create(self):
-        user_id = self.cloudkey.user.create('titi', 'toto')
+        user_id = self.cloudkey.user.create(username='titi', password='toto')
         self.user_ids.append(user_id)
 
         self.assertEqual(type(user_id), unicode)
         self.assertEqual(len(user_id), 24)
 
     def test_create_twice(self):
-        user_id = self.cloudkey.user.create('titi', 'toto')
+        user_id = self.cloudkey.user.create(username='titi', password='toto')
         self.user_ids.append(user_id)
 
-        self.assertRaises(Exists, self.cloudkey.user.create, 'titi', 'toto')
+        self.assertRaises(Exists, self.cloudkey.user.create, username='titi', password='toto')
 
     def test_info(self):
-        user_id = self.cloudkey.user.create('titi', 'toto')
+        user_id = self.cloudkey.user.create(username='titi', password='toto')
         self.user_ids.append(user_id)
 
-        i = self.cloudkey.user.info(user_id)
+        i = self.cloudkey.user.info(id=user_id)
         self.assertEqual(i['username'], 'titi')
 
     def test_my_info(self):

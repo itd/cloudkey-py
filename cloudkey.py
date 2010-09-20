@@ -245,12 +245,11 @@ class ClientService(object):
         
     def __getattr__(self, method):
 
-        def func(*args, **kwargs):
+        def func(**kwargs):
             request = {
                 'service': self._name,
                 'method': method,
-                'args': args,
-                'kwargs': kwargs,
+                'args': kwargs,
                 }
 
             if not self._client._act_as_user:
@@ -280,7 +279,6 @@ class ClientService(object):
 
             try:
                 msg = json.loads(response.getvalue())
-                print json.dumps(msg, indent=4)
             except (TypeError, ValueError), e:
                 raise SerializerError(str(e))
             error = msg.get('error', None)
