@@ -90,19 +90,19 @@ def normalize_arg(arg=None):
     
      >>> from cloud.rpc import normalize_arg
      >>> normalize_arg(['foo', 42, 'bar'])
-     'foo,42,bar,'
+     'foo42bar'
      >>> normalize_arg({'yellow': 1, 'red': 2, 'pink' : 3})
-     'pink=3,red=2,yellow=1,'
+     'pink3red2yellow1'
      >>> normalize_arg(['foo', 42, {'yellow': 1, 'red': 2, 'pink' : 3}, 'bar'])
-     'foo,42,[pink=3,red=2,yellow=1,],bar,'    
+     'foo42pink3red2yellow1bar'    
     """
     res = ''
 
     if type(arg) in (list, tuple):
         for i in arg:
             if type(i) in (dict, list, tuple):
-                i ='[%s]' % normalize_arg(i)
-            res += '%s,' % i
+                i = normalize_arg(i)
+            res += str(i)
         
     elif type(arg) is dict:
         keys = arg.keys()
@@ -110,8 +110,8 @@ def normalize_arg(arg=None):
         for key in keys:
             i = arg[key]
             if type(i) in (dict, list, tuple):
-                i ='[%s]' % normalize_arg(i)
-            res += '%s=%s,' % (key, i)
+                i = normalize_arg(i)
+            res += '%s%s' % (key, i)
 
     else:
         res = str(arg)
@@ -133,7 +133,7 @@ def sign(shared_secret, msg):
      '5f048ebaf6f06576b60716dc8f815d85'
     """
     m = hashlib.md5()
-    m.update(msg + ':' + shared_secret)
+    m.update(msg + shared_secret)
     return m.hexdigest()
 
 #################################################################################
@@ -280,6 +280,7 @@ class ClientService(object):
 
             try:
                 msg = json.loads(response.getvalue())
+                print json.dumps(msg, indent=4)
             except (TypeError, ValueError), e:
                 raise SerializerError(str(e))
             error = msg.get('error', None)
