@@ -95,6 +95,12 @@ def normalize(arg=None):
      'pink3red2yellow1'
      >>> normalize(['foo', 42, {'yellow': 1, 'red': 2, 'pink' : 3}, 'bar'])
      'foo42pink3red2yellow1bar'    
+     >>> normalize(None)
+     ''
+     >>> normalize([None, 1,2])
+     '12'
+     >>> normalize({2: [None, 1,2], 3: None, 4:5})
+     '212345'
     """
     res = ''
 
@@ -102,7 +108,8 @@ def normalize(arg=None):
         for i in arg:
             if type(i) in (dict, list, tuple):
                 i = normalize(i)
-            res += str(i)
+            if i != None:
+                res += str(i)
         
     elif type(arg) is dict:
         keys = arg.keys()
@@ -111,9 +118,12 @@ def normalize(arg=None):
             i = arg[key]
             if type(i) in (dict, list, tuple):
                 i = normalize(i)
-            res += '%s%s' % (key, i)
+            if i != None:
+                res += '%s%s' % (key, i)
+            else:
+                res += str(key)
 
-    else:
+    elif arg != None:
         res = str(arg)
 
     return res
