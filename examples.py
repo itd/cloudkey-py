@@ -1,23 +1,23 @@
 #!/bin/env python
 
 BASE_URL=None
-USERNAME=None
-PASSWORD=None
+USER_ID=None
+API_KEY=None
 
 try:
     from local_config import *
 except ImportError:
     pass
 
-if not USERNAME: USERNAME = raw_input('Username: ')
-if not PASSWORD: PASSWORD = raw_input('Password: ')
+if not USER_ID: USER_ID = raw_input('User ID: ')
+if not API_KEY: API_KEY = raw_input('API Key: ')
 
 import time, sys
 
 from cloudkey import CloudKey
 
 # We connect to the api with our login/password
-cloudkey = CloudKey(USERNAME, PASSWORD, base_url=BASE_URL)
+cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
 
 #
 # Adding media
@@ -36,16 +36,16 @@ media_id = cloudkey.media.create()['id']
 
 # We set a metadata 'title'
 media_title = media_info['name'].replace('_', ' ')
-cloudkey.media.set_meta(id=media_id, key='title', value=media_title)
+cloudkey.media.set_meta(id=media_id, meta={'title': media_title})
 
 # We set the video that we just uploaded as the source of our media
 media_url = media_info['url']
-cloudkey.media.set_asset(id=media_id, preset='source', url=media_url)
+cloudkey.media.set_assets(id=media_id, assets=[{'name': 'source', 'url': media_url}])
 
 # This function retrieve an asset to check it's status and block until it's ready or failed
 def wait_for_asset(media_id, asset_name):
     while True:
-        asset = cloudkey.media.get_asset(id=media_id, preset=asset_name)
+        asset = cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
         if asset['status'] != 'ready':
             if asset['status'] == 'error':
                 print 'Asset couldn\'t be downloaded!'
@@ -60,15 +60,14 @@ def wait_for_asset(media_id, asset_name):
 #wait_for_asset(media_id, 'source')
 
 # We encode our source in two preset and wait for them
-cloudkey.media.process_asset(id=media_id, preset='flv_h263_mp3')
-cloudkey.media.process_asset(id=media_id, preset='mp4_h264_aac')
+cloudkey.media.set_assets(id=media_id, assets=[{'name': 'flv_h263_mp3'}, {'name': 'mp4_h264_aac'}])
 
 wait_for_asset(media_id, 'flv_h263_mp3')
 wait_for_asset(media_id, 'mp4_h264_aac')
 
 # There is a quicker way to publish a video
-# we use the publish method to set some meta and encode the media in 2 presets
-media_ = cloudkey.media.publish(url=media_url, presets=['flv_h263_mp3', 'mp4_h264_aac'], meta={'title' : media_title, 'author' : 'John Doe' })
+# we use avdanced feature of the create method to set some meta and encode the media in 2 presets
+media_ = cloudkey.media.create(url=media_url, assets_names=['flv_h263_mp3', 'mp4_h264_aac'], meta={'title' : media_title, 'author' : 'John Doe' })
 
 # we get the media id
 media_id =  media_['id']
@@ -78,32 +77,25 @@ media_id =  media_['id']
 #
 # You can retrieve the URL of a specific preset, this is the file
 wait_for_asset(media_id, 'flv_h263_mp3')
-print cloudkey.media.get_asset_url(id=media_id, preset='flv_h263_mp3')
+print cloudkey.media.info(id=media_id, fields=['assets.flv_h263_mp3.stream_url'])
 
-# you can retrieve the HTML embed code
-print cloudkey.media.get_embed(id=media_id)
-
-# you can retrieve the URL of the flash media player for use in your own embed code
-print cloudkey.media.get_mediaplayer_url(id=media_id)
+# you can retrieve the embed URL
+print cloudkey.media.info(id=media_id, fields=['assets.flv_h263_mp3.embed_url'])
 
 #
 # Listing media
 #
 # We list the assets of the media we just uploaded
-print cloudkey.media.list_asset(id=media_id)
+print cloudkey.media.get_assets(id=media_id)
 
-# Print the media info of the assets that are ready for web streaming
-for m in cloudkey.media.list(filter={'assets.flv_h263_mp3.status' : 'ready'}):
-    print cloudkey.media.info(id=m['id'])
-
-# we display the title and the status of the mp4 asset for medias that have their source in ready status
-for m in cloudkey.media.list(fields=['assets.mp4_h264_aac.status', 'meta.title'], filter={'assets.source.status' : 'ready'}):
+# Print some info about our media
+for m in cloudkey.media.list(fields=['id', 'meta.title', 'assets.flv_h263_mp3.stream_url', 'created'])['list']:
     print m
 
 #
 # Deleting media
 #
 # We delete the medias that have their source asset in error status
-for m in cloudkey.media.list(filter={'assets.source.status' : 'error'}):
+for m in cloudkey.media.list(fields=['id'])['list']:
     cloudkey.media.delete(id=m['id'])
 
