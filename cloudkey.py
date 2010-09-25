@@ -256,6 +256,10 @@ class JSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+class dotdict(dict):
+    def __getattr__(self, attr):
+        return self.get(attr, None)
+
 class ClientObject(object):
 
     def __init__(self, client, name):
@@ -304,7 +308,7 @@ class ClientObject(object):
             c.close()
 
             try:
-                msg = json.loads(response.getvalue())
+                msg = json.loads(response.getvalue(), object_hook=lambda x: dotdict(x))
                 if DEBUG:
                     print '   Example response::'
                     print ''
