@@ -1,0 +1,14 @@
+Source: cloudkey
+Maintainer: unknown <unknown@unknown>
+Section: python
+Priority: optional
+Build-Depends: python-setuptools (>= 0.6b3), debhelper (>= 7), python-support (>= 0.8.4)
+Standards-Version: 3.8.4
+
+Package: python-cloudkey
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, python-simplejson (>= 2.0.9), python-pycurl (>= 7.19.0)
+XB-Python-Version: ${python:Versions}
+Provides: ${python:Provides}
+Description: Dailymotion Cloud API client library
+

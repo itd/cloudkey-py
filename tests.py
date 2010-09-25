@@ -48,7 +48,7 @@ from cloudkey import AuthenticationError, NotFound, InvalidParameter, Exists
 def wait_for_asset(media_id, asset_name, wait=60):
     cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
     for i in range(wait):
-        asset = cloudkey.media.get_asset(id=media_id, preset=asset_name)
+        asset = cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
         if asset['status'] != 'ready':
             if asset['status'] == 'error':
                 return False
@@ -57,7 +57,18 @@ def wait_for_asset(media_id, asset_name, wait=60):
         return True
     raise Exception('timeout exceeded')
 
+def wait_for_remove_asset(media_id, asset_name, timeout=10):
+    cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
+    for i in range(timeout):
+        try:
+            cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
+        except NotFound, e:
+            return True
+        time.sleep(1)
+    else:
+        raise Exception('timeout exceeded')
 
+# OK
 class CloudKeyMediaDeleteTest(unittest.TestCase):
     def setUp(self):
         self.cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
@@ -67,12 +78,12 @@ class CloudKeyMediaDeleteTest(unittest.TestCase):
         self.cloudkey.media.reset()
 
     def test_delete(self):
-        media = self.cloudkey.media.create()
-        res = self.cloudkey.media.delete(id=media)
+        media_id = self.cloudkey.media.create()['id']
+        res = self.cloudkey.media.delete(id=media_id)
 
         self.assertEqual(res, None)
 
-        self.assertRaises(NotFound, self.cloudkey.media.info, id=media)
+        self.assertRaises(NotFound, self.cloudkey.media.info, id=media_id, fields=['id'])
 
     def test_media_not_found(self):
         self.assertRaises(NotFound, self.cloudkey.media.delete, id='1b87186c84e1b015a0000000')
@@ -90,7 +101,7 @@ class CloudKeyMediaInfoTest(unittest.TestCase):
 
     def test_info(self):
         media = self.cloudkey.media.create()
-        res = self.cloudkey.media.info(id=media)
+        res = self.cloudkey.media.info(id=media, meta={'title': 'mon titre', 'author': 'john doe'})
 
         self.assertEqual(type(res), dict)
         self.assertEqual(set(res.keys()), set([u'meta', u'id', u'assets', u'created']))
@@ -102,20 +113,7 @@ class CloudKeyMediaInfoTest(unittest.TestCase):
     def test_invalid_media_id(self):
         self.assertRaises(InvalidParameter, self.cloudkey.media.info, id='b87186c84e1b015a0000000')
 
-class CloudKeyMediaCreateTest(unittest.TestCase):
-    def setUp(self):
-        self.cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
-        self.cloudkey.media.reset()
-
-    def tearDown(self):
-        self.cloudkey.media.reset()
-
-    def test_create(self):
-        media = self.cloudkey.media.create()
-
-        self.assertEqual(type(media), unicode)
-        self.assertEqual(len(media), 24)
-
+# OK
 class CloudKeyMediaMetaTest(unittest.TestCase):
     def setUp(self):
         self.cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
@@ -125,88 +123,76 @@ class CloudKeyMediaMetaTest(unittest.TestCase):
         self.cloudkey.media.reset()
 
     def test_set_get(self):
-        media = self.cloudkey.media.create()
-        res = self.cloudkey.media.set_meta(id=media, key='mykey', value='my_value')
+        media_id = self.cloudkey.media.create()['id']
+
+        count = 10
+        meta = {}
+        for i in range(count):
+            meta['mykey%d' % i] = 'my_value%d' % i
+
+        res = self.cloudkey.media.set_meta(id=media_id, meta=meta)
         self.assertEqual(res, None)
 
-        res = self.cloudkey.media.get_meta(id=media, key='mykey')
-        self.assertEqual(type(res), unicode)
-        self.assertEqual(res, 'my_value')
-
-    def test_media_not_found(self):
-        self.assertRaises(NotFound, self.cloudkey.media.set_meta, id='1b87186c84e1b015a0000000', key='mykey', value='my_value')
-
-    def test_invalid_media_id(self):
-        self.assertRaises(InvalidParameter, self.cloudkey.media.set_meta, id='b87186c84e1b015a0000000', key='mykey', value='my_value')
-
-    def test_missing_argument(self):
-        media = self.cloudkey.media.create()
-
-        self.assertRaises(InvalidParameter, self.cloudkey.media.set_meta, id=media, key='mykey')
-        self.assertRaises(InvalidParameter, self.cloudkey.media.set_meta, id=media, value='myvalue')
-        self.assertRaises(InvalidParameter, self.cloudkey.media.set_meta, id=media)
-        self.assertRaises(InvalidParameter, self.cloudkey.media.get_meta, id=media)
-        self.assertRaises(InvalidParameter, self.cloudkey.media.remove_meta, id=media)
-
-    def test_set_meta_update(self):
-        media = self.cloudkey.media.create()
-
-        res = self.cloudkey.media.set_meta(id=media, key='mykey', value='value')
-        self.assertEqual(res, None)
-
-        res = self.cloudkey.media.set_meta(id=media, key='mykey', value='my_new_value')
-        self.assertEqual(res, None)
-
-        res = self.cloudkey.media.get_meta(id=media, key='mykey')
-        self.assertEqual(type(res), unicode)
-        self.assertEqual(res, 'my_new_value')
-
-    def test_set_meta_unicode(self):
-        media = self.cloudkey.media.create()
-
-        res = self.cloudkey.media.set_meta(id=media, key=u'u_mykey', value=u'u_value')
-        self.assertEqual(res, None)
-
-        res = self.cloudkey.media.get_meta(id=media, key=u'u_mykey')
-        self.assertEqual(type(res), unicode)
-        self.assertEqual(res, 'u_value')
-
-    def test_meta_not_found(self):
-        media = self.cloudkey.media.create()
-
-        self.assertRaises(NotFound, self.cloudkey.media.get_meta, id=media, key='invalid_key')
-        self.assertRaises(InvalidParameter, self.cloudkey.media.get_meta, id=media, key=[])
-        self.assertRaises(NotFound, self.cloudkey.media.get_meta, id=media, key=100)
-
-    def test_invalid_key(self):
-        media = self.cloudkey.media.create()
-
-    def test_list(self):
-        media = self.cloudkey.media.create()
-
-        res = self.cloudkey.media.list_meta(id=media)
+        res = self.cloudkey.media.get_meta(id=media_id)
         self.assertEqual(type(res), dict)
-        self.assertEqual(len(res), 0)
-
-        for i in range(10):
-            self.cloudkey.media.set_meta(id=media, key='mykey-%d' % i, value='value-%d' % i)
-
-        res = self.cloudkey.media.list_meta(id=media)
-        self.assertEqual(type(res), dict)
-        self.assertEqual(len(res.keys()), 10)
-
-        for i in range(10):
-            self.assertEqual(res['mykey-%d' %i], 'value-%d' % i)
+        self.assertEqual(len(res), count)
+        self.assertEqual(set(res.keys()), set(meta.keys()))
+        self.assertEqual(set(res.values()), set(meta.values()))
+        
 
     def test_remove(self):
-        media = self.cloudkey.media.create()
-        self.cloudkey.media.set_meta(id=media, key='mykey', value='value')
+        media_id = self.cloudkey.media.create()['id']
 
-        res = self.cloudkey.media.remove_meta(id=media, key='mykey')
+        count = 10
+        meta = []
+        for i in range(count):
+            meta.append(('mykey%d' % i, 'my_value%d' % i))
+
+        res = self.cloudkey.media.set_meta(id=media_id, meta=dict(meta))
         self.assertEqual(res, None)
 
-        self.assertRaises(NotFound, self.cloudkey.media.remove_meta, id=media, key='mykey')
-        self.assertRaises(NotFound, self.cloudkey.media.get_meta, id=media, key='mykey')
+        res = self.cloudkey.media.remove_meta(id=media_id, keys=['mykey%d' % i for i in range(6)])
+        self.assertEqual(res, None)
+
+        res = self.cloudkey.media.get_meta(id=media_id, keys=['mykey%d' % i for i in range(6)])
+        self.assertEqual(res, {})
+
+        res = self.cloudkey.media.get_meta(id=media_id)
+        self.assertEqual(len(res), 4)
+
+        res = self.cloudkey.media.remove_meta(id=media_id, keys=res.keys())
+
+        res = self.cloudkey.media.get_meta(id=media_id)
+        self.assertEqual(len(res), 0)
+
+    def test_media_not_found(self):
+        self.assertRaises(NotFound, self.cloudkey.media.set_meta, id='1b87186c84e1b015a0000000', meta={'mykey': 'my_value'})
+
+    def test_invalid_media_id(self):
+        self.assertRaises(InvalidParameter, self.cloudkey.media.set_meta, id='b87186c84e1b015a0000000', meta={'mykey': 'my_value'})
+
+    def test_missing_argument(self):
+        media_id = self.cloudkey.media.create()['id']
+
+        self.assertRaises(InvalidParameter, self.cloudkey.media.set_meta, id=media_id, meta=['mykey'])
+        self.assertRaises(InvalidParameter, self.cloudkey.media.get_meta, id=media_id, keys='toto')
+        self.assertRaises(InvalidParameter, self.cloudkey.media.set_meta, id=media_id)
+        self.assertRaises(InvalidParameter, self.cloudkey.media.get_meta, id=media_id)
+        self.assertRaises(InvalidParameter, self.cloudkey.media.remove_meta, id=media_id)
+
+    def test_set_meta_update(self):
+        media_id = self.cloudkey.media.create()['id']
+
+        res = self.cloudkey.media.set_meta(id=media_id, meta={'mykey': 'value'})
+        self.assertEqual(res, None)
+
+        res = self.cloudkey.media.set_meta(id=media_id, meta={'mykey': 'my_new_value'})
+        self.assertEqual(res, None)
+
+        res = self.cloudkey.media.get_meta(id=media_id, keys=['mykey'])
+        self.assertEqual(type(res), dict)
+        self.assertEqual(res.keys(), ['mykey'])
+        self.assertEqual(res['mykey'], 'my_new_value')
 
 class CloudKeyMediaAssetUrl(unittest.TestCase):
 
@@ -217,17 +203,17 @@ class CloudKeyMediaAssetUrl(unittest.TestCase):
         media_url = media_info['url']
         media = self.cloudkey.media.create()
         self.media_id = media
-        self.cloudkey.media.set_asset(id=self.media_id, preset='source', url=media_url)
+        self.cloudkey.media.set_asset(id=self.media_id, asset_name='source', url=media_url)
 
     def tearDown(self):
         self.cloudkey.media.reset()
 
     def test_media_get_asset_url_preview(self):
-        preset = 'jpeg_thumbnail_small'
+        asset_name = 'jpeg_thumbnail_small'
 
-        self.cloudkey.media.process_asset(id=self.media_id, preset=preset)
-        wait_for_asset(self.media_id, preset)
-        url = self.cloudkey.media.get_asset_url(id=self.media_id, preset=preset)
+        self.cloudkey.media.process_asset(id=self.media_id, asset_name=asset_name)
+        wait_for_asset(self.media_id, asset_name)
+        url = self.cloudkey.media.get_asset_url(id=self.media_id, asset_name=asset_name)
 
         parsed = urlparse.urlparse(url)
         spath = parsed.path.split('/')
@@ -235,14 +221,14 @@ class CloudKeyMediaAssetUrl(unittest.TestCase):
         preset_name, ext = spath[-1].split('.')
         self.assertTrue('-' in preset_name)
         self.assertTrue(ext, preset.split('_')[0])
-        self.assertEqual(preset_name.split('-')[0], preset)
+        self.assertEqual(preset_name.split('-')[0], asset_name)
 
     def test_media_get_asset_url_video(self):
-        preset = 'mp4_h264_aac'
+        asset_name = 'mp4_h264_aac'
 
-        self.cloudkey.media.process_asset(id=self.media_id, preset=preset)
-        wait_for_asset(self.media_id, preset)
-        url = self.cloudkey.media.get_asset_url(id=self.media_id, preset=preset)
+        self.cloudkey.media.process_asset(id=self.media_id, asset_name=asset_name)
+        wait_for_asset(self.media_id, asset_name)
+        url = self.cloudkey.media.get_asset_url(id=self.media_id, asset_name=asset_name)
 
         parsed = urlparse.urlparse(url)
         self.assertTrue('cdn' in parsed.netloc)
@@ -250,7 +236,7 @@ class CloudKeyMediaAssetUrl(unittest.TestCase):
         preset_name, ext = spath[-1].split('.')
         self.assertTrue('-' in preset_name)
         self.assertTrue(ext, preset.split('_')[0])
-        self.assertEqual(preset_name.split('-')[0], preset)
+        self.assertEqual(preset_name.split('-')[0], asset_name)
         self.assertEqual(len(spath), 5)
         self.assertEqual(spath[1], 'route')
 
@@ -293,7 +279,7 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         media = self.cloudkey.media.create()
         res = self.cloudkey.media.set_asset(id=media, preset='source', url=media_url, callback_url='http://atm-02.int.dmcloud.net:5000/test')
         self.assertEqual(res, None)
-        res = self.wait_for_asset(media, 'source')
+        res = wait_for_asset(media, 'source')
         self.assertTrue(res)
 
     def test_media_set_asset_existing_video(self):
@@ -304,22 +290,12 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         media = self.cloudkey.media.create()
         res = self.cloudkey.media.set_asset(id=media, preset=preset, url=media_url)
         self.assertEqual(res, None)
-        res = self.wait_for_asset(media, preset)
+        res = wait_for_asset(media, preset)
 
         res = self.cloudkey.media.get_asset(id=media, preset=preset)
         self.assertTrue('status' in res.keys())
         self.assertEqual(res['status'], 'ready')
 
-    def wait_for_asset(self, media_id, asset_name, wait=60):
-        for i in range(wait):
-            asset = self.cloudkey.media.get_asset(id=media_id, preset=asset_name)
-            if asset['status'] != 'ready':
-                if asset['status'] == 'error':
-                    return False
-                time.sleep(1)
-                continue
-            return True
-        raise Exception('timeout exceeded')
 
     def test_media_get_asset(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
@@ -332,22 +308,12 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertTrue('status' in res.keys())
         self.assertTrue(res['status'] in ('pending', 'processing'))
 
-        res = self.wait_for_asset(media, 'source')
+        res = wait_for_asset(media, 'source')
         self.assertTrue(res)
         res = self.cloudkey.media.get_asset(id=media, preset='source')
         self.assertTrue('status' in res.keys())
         self.assertEqual(res['status'], 'ready')
 
-
-    def wait_for_remove_asset(self, media_id, asset_name, timeout=10):
-        for i in range(timeout):
-            try:
-                self.cloudkey.media.get_asset(id=media_id, preset=asset_name)
-            except NotFound, e:
-                return True
-            time.sleep(1)
-        else:
-            raise Exception('timeout exceeded')
 
     def test_media_remove_asset(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
@@ -355,19 +321,19 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
 
         media = self.cloudkey.media.create()
         res = self.cloudkey.media.set_asset(id=media, preset='source', url=media_url)
-        res = self.wait_for_asset(media, 'source')
+        res = wait_for_asset(media, 'source')
         self.assertEqual(res, True)
 
         res = self.cloudkey.media.remove_asset(id=media, preset='source')
         self.assertEqual(res, None)
-        res = self.wait_for_remove_asset(media, 'source', 20)
+        res = wait_for_remove_asset(media, 'source', 20)
         self.assertEqual(res, True)
 
         self.cloudkey.media.set_asset(id=media, preset='source', url=media_url)
         res = self.cloudkey.media.remove_asset(id=media, preset='source')
         self.assertEqual(res, None)
 
-        res = self.wait_for_remove_asset(media, 'source')
+        res = wait_for_remove_asset(media, 'source')
         self.assertEqual(res, True)
         self.assertRaises(NotFound, self.cloudkey.media.get_asset, id=media, preset='source')
 
@@ -385,9 +351,9 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         self.assertEqual(res['status'], 'pending')
         res = self.cloudkey.media.get_asset(id= media, preset='mp4_h264_aac')
         self.assertEqual(res['status'], 'pending')
-        res = self.wait_for_asset(media, 'flv_h263_mp3')
+        res = wait_for_asset(media, 'flv_h263_mp3')
         self.assertTrue(res)
-        res = self.wait_for_asset(media, 'mp4_h264_aac')
+        res = wait_for_asset(media, 'mp4_h264_aac')
         self.assertTrue(res)
         res = self.cloudkey.media.get_asset(id= media, preset='flv_h263_mp3')
         self.assertEqual(res['status'], 'ready')
@@ -404,11 +370,11 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         res = self.cloudkey.media.set_asset(id=media, preset='source', url=media_url)
         res = self.cloudkey.media.process_asset(id=media, preset='mp4_h264_aac')
         self.assertEqual(res, None)
-        res = self.wait_for_asset(media, 'mp4_h264_aac')
+        res = wait_for_asset(media, 'mp4_h264_aac')
         self.assertTrue(res)
         res = self.cloudkey.media.process_asset(id=media, preset='flv_h263_mp3', source_preset='mp4_h264_aac')
         self.assertEqual(res, None)
-        res = self.wait_for_asset(media, 'flv_h263_mp3')
+        res = wait_for_asset(media, 'flv_h263_mp3')
         self.assertTrue(res)
 
     def test_media_process_asset_alternative_source_depends(self):
@@ -419,9 +385,9 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
         res = self.cloudkey.media.set_asset(id=media, preset='source', url=media_url)
         res = self.cloudkey.media.process_asset(id=media, preset='mp4_h264_aac')
         res = self.cloudkey.media.process_asset(id=media, preset='flv_h263_mp3', source_preset='mp4_h264_aac')
-        res = self.wait_for_asset(media, 'flv_h263_mp3')
+        res = wait_for_asset(media, 'flv_h263_mp3')
         self.assertTrue(res)
-        res = self.wait_for_asset(media, 'mp4_h264_aac')
+        res = wait_for_asset(media, 'mp4_h264_aac')
         self.assertTrue(res)
 
     def test_media_process_asset_no_source(self):
@@ -440,7 +406,8 @@ class CloudKeyMediaAssetTest(unittest.TestCase):
 
         self.assertRaises(Exists, self.cloudkey.media.process_asset, id=media, preset='flv_h263_mp3')
 
-class CloudKeyMediaPublishTest(unittest.TestCase):
+# OK
+class CloudKeyMediaCreateTest(unittest.TestCase):
 
     def setUp(self):
         self.cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
@@ -449,82 +416,97 @@ class CloudKeyMediaPublishTest(unittest.TestCase):
     def tearDown(self):
         self.cloudkey.media.reset()
 
+    def test_create(self):
+        media = self.cloudkey.media.create()
+
+        self.assertEqual(type(media), dict)
+        self.assertEqual(media.keys(), ['id'])
+        self.assertEqual(len(media['id']), 24)
+
+        res = self.cloudkey.media.info(id=media['id'], fields=['id'])
+        self.assertEqual(res.keys(), ['id'])
+        self.assertEqual(res['id'], media['id'])
+
+    def test_create_with_meta(self):
+        media = self.cloudkey.media.create(meta={'title': 'mon titre', 'author': 'john doe'})
+
+        res = self.cloudkey.media.info(id=media['id'], fields=['meta.title', 'meta.author'])
+        self.assertEqual(res.keys(), ['meta'])
+        self.assertEqual(set(res['meta'].keys()), set(['title', 'author']))
+        self.assertEqual(res['meta']['title'], 'mon titre')
+        self.assertEqual(res['meta']['author'], 'john doe')
+
     def test_publish(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
         media_url = media_info['url']
 
-        presets = ['flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq', 'jpeg_thumbnail_small', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_large']
+        assets_names = ['flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq', 'jpeg_thumbnail_small', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_large']
 
-        media = self.cloudkey.media.publish(url=media_url, presets=presets)
+        media_id = self.cloudkey.media.create(url=media_url, assets_names=assets_names)['id']
 
-        for preset in presets:
-            res = self.cloudkey.media.get_asset(id= media, preset=preset)
+        for asset_name in assets_names:
+            res = self.cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
             self.assertEqual(res['status'], 'pending')
 
-        for preset in presets:
-            res = self.wait_for_asset(media, preset)
+        for asset_name in assets_names:
+            res = wait_for_asset(media_id, asset_name)
 
-        for preset in presets:
-            res = self.cloudkey.media.get_asset(id= media, preset=preset)
+        for asset_name in assets_names:
+            res = self.cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
             self.assertEqual(res['status'], 'ready')
-            if 'thumbnail' in preset:
-                attr = set(['status', 'container', 'name', 'video_height', 'file_size', 'video_codec', 'video_width', 'created'])
+            if 'thumbnail' in asset_name:
+                attr = set(['status', 'container','video_height', 'file_size', 'video_codec', 'video_width', 'created'])
             else:
-                attr = set(['status', 'container', 'name', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created'])
+                attr = set(['status', 'container', 'video_bitrate', 'video_height', 'audio_bitrate', 'audio_codec', 'file_size', 'duration', 'video_codec', 'video_width', 'global_bitrate', 'created'])
             self.assertEqual(set(res.keys()), attr)
 
-    def test_publish_source_error(self):
+    def test_create_source_error(self):
         media_info = self.cloudkey.file.upload_file('.fixtures/broken.avi')
         media_url = media_info['url']
 
-        presets = ['flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq']
+        assets_names = ['flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq']
 
-        media = self.cloudkey.media.publish(url=media_url, presets=presets)
+        media_id = self.cloudkey.media.create(url=media_url, assets_names=assets_names)['id']
 
-        for preset in presets:
-            res = self.wait_for_asset(media, preset)
+        for asset_name in assets_names:
+            res = wait_for_asset(media_id, asset_name)
 
-        for preset in presets:
-            res = self.cloudkey.media.get_asset(id= media, preset=preset)
-            self.assertEqual(res['status'], 'error')
-            self.assertEqual(res.keys(), ['status', 'name'])
+        for asset_name in assets_names:
+            res = self.cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])
+            self.assertEqual(res.keys(), [asset_name])
+            self.assertEqual(res[asset_name].keys(), ['status'])
+            self.assertEqual(res[asset_name]['status'], 'error')
 
-    def test_publish_url_error(self):
+    def test_create_url_error(self):
         media_url = 'http://localhost/'
 
-        presets = ['flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq']
+        assets_names = ['flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq']
 
-        media = self.cloudkey.media.publish(url=media_url, presets=presets)
+        media_id = self.cloudkey.media.create(url=media_url, assets_names=assets_names)['id']
 
-        for preset in presets:
-            res = self.wait_for_asset(media, preset, 10)
+        for asset_name in assets_names:
+            res = wait_for_asset(media_id, asset_name, 10)
             self.assertFalse(res)
 
-        for preset in presets:
-            res = self.cloudkey.media.get_asset(id= media, preset=preset)
+        for asset_name in assets_names:
+            res = self.cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
             self.assertEqual(res['status'], 'error')
-            self.assertEqual(res.keys(), ['status', 'name'])
+            self.assertEqual(res.keys(), ['status',])
 
-    def test_publish_duplicate_preset_error(self):
-        media_info = self.cloudkey.file.upload_file('.fixtures/broken.avi')
+    def test_create_duplicate_asset_name(self):
+        media_info = self.cloudkey.file.upload_file('.fixtures/video.3gp')
         media_url = media_info['url']
 
-        presets = ['mp4_h264_aac', 'mp4_h264_aac']
-        media = self.cloudkey.media.publish(url=media_url, presets=presets)
-        self.assertEqual(type(media), unicode)
+        assets_names = ['mp4_h264_aac', 'mp4_h264_aac']
+        media_id = self.cloudkey.media.create(url=media_url, assets_names=assets_names)['id']
 
-    def wait_for_asset(self, media_id, asset_name, wait=60):
-        for i in range(wait):
-            asset = self.cloudkey.media.get_asset(id=media_id, preset=asset_name)
-            if asset['status'] != 'ready':
-                if asset['status'] == 'error':
-                    return False
-                time.sleep(1)
-                continue
-            return True
-        raise Exception('timeout exceeded')
+        asset_name = assets_names[0]
+        res = wait_for_asset(media_id, asset_name)
 
+        res = self.cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
+        self.assertEqual(res['status'], 'ready')
 
+# OK
 class CloudKeyFileTest(unittest.TestCase):
 
     def setUp(self):
@@ -658,20 +640,6 @@ class CloudKeyMediaListTest(unittest.TestCase):
         res = self.cloudkey.media.list(filter=filter)
         self.assertEqual(len(res), 12)
 
-class CloudKeyMediaTest(unittest.TestCase):
-
-    def setUp(self):
-        self.cloudkey = CloudKey(USER_ID, API_KEY, base_url=BASE_URL)
-        self.cloudkey.media.reset()
-
-    def tearDown(self):
-        self.cloudkey.media.reset()
-
-    def test_media_create(self):
-        media = self.cloudkey.media.create()
-
-        self.assertEqual(type(media), unicode)
-        self.assertEqual(len(media), 24)
 
 
 class CloudKeyMediaStatsTest(unittest.TestCase):
@@ -699,43 +667,43 @@ class CloudKeyUserAssetsTest(unittest.TestCase):
 
     def test_enable_asset(self):
         self.cloudkey.encoding_settings.enable_asset(asset='flv_h263_mp3')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, ['flv_h263_mp3'])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, ['flv_h263_mp3'])
         self.cloudkey.encoding_settings.enable_asset(asset='flv_h263_mp3')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, ['flv_h263_mp3'])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, ['flv_h263_mp3'])
         self.cloudkey.encoding_settings.enable_asset(asset='mp4_h264_aac')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, ['flv_h263_mp3', 'mp4_h264_aac'])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, ['flv_h263_mp3', 'mp4_h264_aac'])
 
     def test_disable_asset(self):
         self.cloudkey.encoding_settings.enable_asset(asset='flv_h263_mp3')
         self.cloudkey.encoding_settings.enable_asset(asset='mp4_h264_aac')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, ['flv_h263_mp3', 'mp4_h264_aac'])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, ['flv_h263_mp3', 'mp4_h264_aac'])
         self.cloudkey.encoding_settings.disable_asset(asset='flv_h263_mp3')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, ['mp4_h264_aac'])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, ['mp4_h264_aac'])
         self.cloudkey.encoding_settings.disable_asset(asset='flv_h263_mp3')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, ['mp4_h264_aac'])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, ['mp4_h264_aac'])
         self.cloudkey.encoding_settings.disable_asset(asset='mp4_h264_aac')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, [])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, [])
 
     def test_get_active_assets(self):
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, [])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, [])
 
         self.cloudkey.encoding_settings.enable_asset(asset='flv_h263_mp3')
         self.cloudkey.encoding_settings.enable_asset(asset='mp4_h264_aac')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, ['flv_h263_mp3', 'mp4_h264_aac'])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, ['flv_h263_mp3', 'mp4_h264_aac'])
 
         self.cloudkey.encoding_settings.disable_asset(asset='flv_h263_mp3')
         self.cloudkey.encoding_settings.disable_asset(asset='mp4_h264_aac')
-        presets = self.cloudkey.encoding_settings.get_active_assets()
-        self.assertEqual(presets, [])
+        assets_names = self.cloudkey.encoding_settings.get_active_assets()
+        self.assertEqual(assets_names, [])
 
     def test_get_set_delete_asset_settings(self):
         pass

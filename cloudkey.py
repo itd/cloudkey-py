@@ -1,5 +1,10 @@
 """Dailymotion Cloud RPC loosely based on JSON-RPC"""
 
+API_ENDPOINT = '/api'
+DEBUG = False
+
+__version__ = "1.1"
+
 import os
 import StringIO
 import string
@@ -186,7 +191,7 @@ class SerializerError(RPCException):
 class InvalidRequest(RPCException):
     code = 600
 
-class InvalidService(InvalidRequest):
+class InvalidObject(InvalidRequest):
     code = 610
 
 class InvalidMethod(InvalidRequest):
@@ -194,6 +199,9 @@ class InvalidMethod(InvalidRequest):
 
 class InvalidParameter(InvalidRequest):
     code = 630
+
+class InvalidCall(InvalidRequest):
+    code = 640
 
 class ApplicationException(RPCException):
     code = 1000
@@ -216,9 +224,10 @@ def RPCException_handler(error):
         410: RateLimitExceeded,
         500: SerializerError,
         600: InvalidRequest,
-        610: InvalidService,
+        610: InvalidObject,
         620: InvalidMethod,
         630: InvalidParameter,
+        640: InvalidCall,
         1000: ApplicationException,
         1010: NotFound,
         1020: Exists,
@@ -247,7 +256,7 @@ class JSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class ClientService(object):
+class ClientObject(object):
 
     def __init__(self, client, name):
         self._client = client
@@ -257,8 +266,7 @@ class ClientService(object):
 
         def func(**kwargs):
             request = {
-                'service': self._name,
-                'method': method,
+                'call': '%s.%s' % (self._name, method),
                 'args': kwargs,
                 }
 
@@ -271,7 +279,15 @@ class ClientService(object):
 
             c = pycurl.Curl()
             c.setopt(pycurl.URL, self._client._api_endpoint)
+            c.setopt(pycurl.USERAGENT, 'cloudkey-py %s' % __version__)
             c.setopt(pycurl.HTTPHEADER, ["Content-Type: application/json"])
+
+            if DEBUG:
+                print '   Example request::'
+                print ''
+                for line in  json.dumps(request, cls=JSONEncoder, indent=2).split('\n'):
+                    print '       %s' % line
+                print ''
 
             c.setopt(pycurl.POSTFIELDS, json.dumps(request, cls=JSONEncoder))
 
@@ -289,6 +305,12 @@ class ClientService(object):
 
             try:
                 msg = json.loads(response.getvalue())
+                if DEBUG:
+                    print '   Example response::'
+                    print ''
+                    for line in  json.dumps(msg, indent=2).split('\n'):
+                        print '       %s' % line
+                    print ''
             except (TypeError, ValueError), e:
                 raise SerializerError(str(e))
             error = msg.get('error', None)
@@ -299,7 +321,7 @@ class ClientService(object):
         return func
 
 
-class FileService(ClientService):
+class FileObject(ClientObject):
 
     def upload_file(self, file):
         if not os.path.exists(file):
@@ -308,6 +330,7 @@ class FileService(ClientService):
 
         c = pycurl.Curl()
         c.setopt(pycurl.URL, str(result['url']))
+        c.setopt(pycurl.USERAGENT, 'cloudkey-py %s' % __version__)
         c.setopt(pycurl.FOLLOWLOCATION, True)
         c.setopt(pycurl.HTTPPOST, [('file', (pycurl.FORM_FILE, file))])
 
@@ -326,7 +349,7 @@ class FileService(ClientService):
         return json.loads(response.getvalue())
 
 
-class MediaService(ClientService):
+class MediaObject(ClientObject):
 
     def get_embed_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
         url = '%s/embed/%s/%s' % (self._client._base_url, self._client._user_id, id)
@@ -344,16 +367,16 @@ class CloudKey(object):
         self._api_key = api_key if api_key else ''
         self._base_url = base_url
         self._act_as_user = None
-        self._api_endpoint =  base_url + '/api'
+        self._api_endpoint =  base_url + API_ENDPOINT
         self._proxy = proxy
 
     def __getattr__(self, method):
         if method == 'file':
-            return FileService(self, method)
+            return FileObject(self, method)
         if method == 'media':
-            media = MediaService(self, method)
+            media = MediaObject(self, method)
             return media
-        return ClientService(self, method)
+        return ClientObject(self, method)
 
     def act_as_user(self, user):
         self._act_as_user = user

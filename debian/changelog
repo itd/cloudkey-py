@@ -1,0 +1,11 @@
+cloudkey (1.1-1) unstable; urgency=low
+
+  * Support new API
+
+ -- Sebastien Estienne <sebastien.estienne@dailymotion.com>  Sat, 25 Sep 2010 14:29:04 +0200
+
+cloudkey (1.0-1) unstable; urgency=low
+
+  * source package automatically created by stdeb 0.6.0+git
+
+ -- unknown <unknown@unknown>  Fri, 10 Sep 2010 01:07:47 +0200
