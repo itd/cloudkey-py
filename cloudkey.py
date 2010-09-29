@@ -32,7 +32,7 @@ class SecLevel:
     COUNTRY   = 1 << 5
     REFERER   = 1 << 6
 
-def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
+def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None expires=None):
     # Normalize parameters
     seclevel = seclevel or SecLevel.NONE
     expires  = int(expires or time.time() + 7200)
@@ -84,22 +84,22 @@ def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, ex
 
 def normalize(arg=None):
     """Normalizes an argument for signing purpose.
-    
+
     This is used for normalizing the arguments of RPC method calls.
-    
+
     :param arg: The argument to normalize
-    
+
     :return: A string representating the normalized argument.
-    
+
     .. doctest::
-    
+
      >>> from cloud.rpc import normalize
      >>> normalize(['foo', 42, 'bar'])
      'foo42bar'
      >>> normalize({'yellow': 1, 'red': 2, 'pink' : 3})
      'pink3red2yellow1'
      >>> normalize(['foo', 42, {'yellow': 1, 'red': 2, 'pink' : 3}, 'bar'])
-     'foo42pink3red2yellow1bar'    
+     'foo42pink3red2yellow1bar'
      >>> normalize(None)
      ''
      >>> normalize([None, 1,2])
@@ -115,7 +115,7 @@ def normalize(arg=None):
                 i = normalize(i)
             if i != None:
                 res += str(i)
-        
+
     elif type(arg) is dict:
         keys = arg.keys()
         keys.sort()
@@ -135,14 +135,14 @@ def normalize(arg=None):
 
 def sign(shared_secret, msg):
     """Signs a message using a shared secret.
-    
+
     :param shared_secret: The shared secret used to sign the message
     :param msg: The message to sign
-    
+
     :return: The signature as a string
 
     .. doctest::
-    
+
      >>> from cloud.rpc import sign
      >>> sign('sEcReT_KeY', 'hello world')
      '5f048ebaf6f06576b60716dc8f815d85'
@@ -240,9 +240,9 @@ def RPCException_handler(error):
 
 class JSONEncoder(json.JSONEncoder):
     """Extends JSON encoder to handle types like datetime
-    
+
     .. doctest::
-    
+
      >>> import json
      >>> from datetime import datetime
      >>> from cloud.rpc import JSONEncoder
@@ -265,7 +265,7 @@ class ClientObject(object):
     def __init__(self, client, name):
         self._client = client
         self._name = name
-        
+
     def __getattr__(self, method):
 
         def func(**kwargs):
@@ -300,7 +300,7 @@ class ClientObject(object):
 
             response = StringIO.StringIO()
             c.setopt(pycurl.WRITEFUNCTION, response.write)
-            
+
             try:
                 c.perform()
             except pycurl.error, e:
@@ -355,13 +355,13 @@ class FileObject(ClientObject):
 
 class MediaObject(ClientObject):
 
-    def get_embed_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, expires=None):
+    def get_embed_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None):
         url = '%s/embed/%s/%s' % (self._client._base_url, self._client._user_id, id)
-        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
+        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires)
 
-    def get_stream_url(self, id, preset='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, expires=None, cdn_url='http://cdn.dmcloud.net'):
+    def get_stream_url(self, id, preset='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None, cdn_url='http://cdn.dmcloud.net'):
         url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._client._user_id, id, preset, preset.split('_')[0])
-        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
+        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires)
 
 
 class CloudKey(object):
