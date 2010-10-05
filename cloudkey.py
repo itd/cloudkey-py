@@ -32,7 +32,7 @@ class SecLevel:
     COUNTRY   = 1 << 5
     REFERER   = 1 << 6
 
-def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None expires=None):
+def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None):
     # Normalize parameters
     seclevel = seclevel or SecLevel.NONE
     expires  = int(expires or time.time() + 7200)
