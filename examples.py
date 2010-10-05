@@ -59,14 +59,14 @@ def wait_for_asset(media_id, asset_name):
 # We wait until our source is ready
 #wait_for_asset(media_id, 'source')
 
-# We encode our source in two preset and wait for them
+# We encode our source in two asset_name and wait for them
 cloudkey.media.set_assets(id=media_id, assets=[{'name': 'flv_h263_mp3'}, {'name': 'mp4_h264_aac'}])
 
 wait_for_asset(media_id, 'flv_h263_mp3')
 wait_for_asset(media_id, 'mp4_h264_aac')
 
 # There is a quicker way to publish a video
-# we use avdanced feature of the create method to set some meta and encode the media in 2 presets
+# we use avdanced feature of the create method to set some meta and encode the media in 2 asset_names
 media_ = cloudkey.media.create(url=media_url, assets_names=['flv_h263_mp3', 'mp4_h264_aac'], meta={'title' : media_title, 'author' : 'John Doe' })
 
 # we get the media id
@@ -75,7 +75,7 @@ media_id =  media_['id']
 #
 # Playing media
 #
-# You can retrieve the URL of a specific preset, this is the file
+# You can retrieve the URL of a specific asset_name, this is the file
 wait_for_asset(media_id, 'flv_h263_mp3')
 print cloudkey.media.info(id=media_id, fields=['assets.flv_h263_mp3.stream_url'])
 

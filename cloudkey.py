@@ -308,7 +308,8 @@ class ClientObject(object):
             c.close()
 
             try:
-                msg = json.loads(response.getvalue(), object_hook=lambda x: dotdict(x))
+                #msg = json.loads(response.getvalue(), object_hook=lambda x: dotdict(x))
+                msg = json.loads(response.getvalue())
                 if DEBUG:
                     print '   Example response::'
                     print ''
@@ -359,8 +360,8 @@ class MediaObject(ClientObject):
         url = '%s/embed/%s/%s' % (self._client._base_url, self._client._user_id, id)
         return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
 
-    def get_stream_url(self, id, preset='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, expires=None, cdn_url='http://cdn.dmcloud.net'):
-        url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._client._user_id, id, preset, preset.split('_')[0])
+    def get_stream_url(self, id, asset_name='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, expires=None, cdn_url='http://cdn.dmcloud.net'):
+        url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._client._user_id, id, asset_name, asset_name.split('_')[0])
         return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, expires=expires)
 
 
