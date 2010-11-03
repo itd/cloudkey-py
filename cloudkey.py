@@ -1,9 +1,12 @@
 """Dailymotion Cloud RPC loosely based on JSON-RPC"""
 
+import sys
+
 API_ENDPOINT = '/api'
 DEBUG = False
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
+__python_version__ = '.'.join([str(i) for i in sys.version_info[:3]])
 
 import os
 import StringIO
@@ -203,6 +206,9 @@ class InvalidParameter(InvalidRequest):
 class InvalidCall(InvalidRequest):
     code = 640
 
+class MissingParameter(InvalidRequest):
+    code = 650
+
 class ApplicationException(RPCException):
     code = 1000
 
@@ -228,13 +234,17 @@ def RPCException_handler(error):
         620: InvalidMethod,
         630: InvalidParameter,
         640: InvalidCall,
+        650: MissingParameter,
         1000: ApplicationException,
         1010: NotFound,
         1020: Exists,
         1030: LimitExceeded,
         }
 
-    e = exceptions.get(error['code'], RPCException)
+    e = exceptions.get(error['code'])
+    if not e:
+        e = RPCException
+        e.code = error['code']
     return e(error['message'], error.get('data', None))
 
 
@@ -283,8 +293,8 @@ class ClientObject(object):
 
             c = pycurl.Curl()
             c.setopt(pycurl.URL, self._client._api_endpoint)
-            c.setopt(pycurl.USERAGENT, 'cloudkey-py %s' % __version__)
-            c.setopt(pycurl.HTTPHEADER, ["Content-Type: application/json"])
+            c.setopt(pycurl.USERAGENT, 'cloudkey-py/%s (Python %s)' % (__version__, __python_version__))
+            c.setopt(pycurl.HTTPHEADER, ["Content-Type: application/json", 'Expect:'])
 
             if DEBUG:
                 print '   Example request::'
@@ -293,7 +303,12 @@ class ClientObject(object):
                     print '       %s' % line
                 print ''
 
-            c.setopt(pycurl.POSTFIELDS, json.dumps(request, cls=JSONEncoder))
+            try:
+                data = json.dumps(request, cls=JSONEncoder)
+            except (TypeError, ValueError), e:
+                raise SerializerError(str(e))
+                
+            c.setopt(pycurl.POSTFIELDS, data)
 
             if self._client._proxy:
                 c.setopt(pycurl.PROXY, self._client._proxy)
@@ -305,7 +320,8 @@ class ClientObject(object):
                 c.perform()
             except pycurl.error, e:
                 raise TransportException(str(e))
-            c.close()
+            finally:
+                c.close()
 
             try:
                 #msg = json.loads(response.getvalue(), object_hook=lambda x: dotdict(x))
@@ -335,7 +351,8 @@ class FileObject(ClientObject):
 
         c = pycurl.Curl()
         c.setopt(pycurl.URL, str(result['url']))
-        c.setopt(pycurl.USERAGENT, 'cloudkey-py %s' % __version__)
+        c.setopt(pycurl.USERAGENT, 'cloudkey-py/%s (Python %s)' % (__version__, __python_version__))
+        c.setopt(pycurl.HTTPHEADER, ['Expect:'])
         c.setopt(pycurl.FOLLOWLOCATION, True)
         c.setopt(pycurl.HTTPPOST, [('file', (pycurl.FORM_FILE, file))])
 
@@ -357,10 +374,14 @@ class FileObject(ClientObject):
 class MediaObject(ClientObject):
 
     def get_embed_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None):
+        if type(id) not in (str, unicode):
+            raise InvalidParameter('id is not valid')
         url = '%s/embed/%s/%s' % (self._client._base_url, self._client._user_id, id)
         return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires)
 
     def get_stream_url(self, id, asset_name='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None, cdn_url='http://cdn.dmcloud.net'):
+        if type(id) not in (str, unicode):
+            raise InvalidParameter('id is not valid')
         url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._client._user_id, id, asset_name, asset_name.split('_')[0])
         return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires)
 
