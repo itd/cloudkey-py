@@ -344,7 +344,7 @@ class ClientObject(object):
 
 class FileObject(ClientObject):
 
-    def upload_file(self, file):
+    def upload_file(self, file, progress = None):
         if not os.path.exists(file):
             raise IOError("[Errno 2] No such file or directory: '%s'" % file)
         result = self.upload()
@@ -358,6 +358,10 @@ class FileObject(ClientObject):
 
         if self._client._proxy:
             c.setopt(pycurl.PROXY, self._client._proxy)
+
+        if progress:
+            c.setopt(pycurl.NOPROGRESS, 0)
+            c.setopt(pycurl.PROGRESSFUNCTION, lambda x, y, total, current: progress(current, total))
 
         response = StringIO.StringIO()
         c.setopt(pycurl.WRITEFUNCTION, response.write)
