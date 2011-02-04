@@ -3,10 +3,10 @@
 import sys
 
 API_ENDPOINT = '/api'
-DEBUG = False
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 __python_version__ = '.'.join([str(i) for i in sys.version_info[:3]])
+_DEBUG = False
 
 import os
 import StringIO
@@ -15,12 +15,15 @@ import random
 import hashlib
 import datetime
 import time
+import pycurl
+import zlib
+import re
+import base64
+import urllib
 try:
     import json
 except ImportError:
     import simplejson as json
-import pycurl
-
 
 #
 # Common
@@ -66,7 +69,7 @@ def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, co
                 countries = '-' + ','.join(countries[1:])
             else:
                 countries = ','.join(countries)
-            if not match(r'^-?(?:[a-zA-Z]{2})(:?,[a-zA-Z]{2})*$', countries):
+            if not re.match(r'^-?(?:[a-zA-Z]{2})(:?,[a-zA-Z]{2})*$', countries):
                 raise ValueError('Invalid format for COUNTRY security level parameter.')
             public_secparams.append('cc=%s' % countries.lower())
         if seclevel & SecLevel.REFERER:
@@ -74,7 +77,7 @@ def sign_url(url, secret, seclevel=None, asnum=None, ip=None, useragent=None, co
                 raise ValueError('REFERER security level required and no referer list provided.')
             if type(referers) is not list:
                 raise ValueError('Invalid format for REFERER, should be a list of url strings.')
-            public_secparams.append('rf=%s' % quote_plus(' '.join([referer.replace(' ', '%20') for referer in referers])))
+            public_secparams.append('rf=%s' % urllib.quote_plus(' '.join([referer.replace(' ', '%20') for referer in referers])))
 
     public_secparams_encoded = ''
     if len(public_secparams) > 0:
@@ -277,6 +280,7 @@ class ClientObject(object):
         self._name = name
 
     def __getattr__(self, method):
+        global _DEBUG
 
         def func(**kwargs):
             request = {
@@ -296,8 +300,10 @@ class ClientObject(object):
             c.setopt(pycurl.USERAGENT, 'cloudkey-py/%s (Python %s)' % (__version__, __python_version__))
             c.setopt(pycurl.HTTPHEADER, ["Content-Type: application/json", 'Expect:'])
 
-            if DEBUG:
+            if _DEBUG:
                 print '   Example request::'
+                print ''
+                print '   Normalization or request: ' + normalize(request)
                 print ''
                 for line in  json.dumps(request, cls=JSONEncoder, indent=2).split('\n'):
                     print '       %s' % line
@@ -326,7 +332,7 @@ class ClientObject(object):
             try:
                 #msg = json.loads(response.getvalue(), object_hook=lambda x: dotdict(x))
                 msg = json.loads(response.getvalue())
-                if DEBUG:
+                if _DEBUG:
                     print '   Example response::'
                     print ''
                     for line in  json.dumps(msg, indent=2).split('\n'):
@@ -377,27 +383,37 @@ class FileObject(ClientObject):
 
 class MediaObject(ClientObject):
 
-    def get_embed_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None):
+    def get_embed_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None, skin=None):
         if type(id) not in (str, unicode):
             raise InvalidParameter('id is not valid')
         url = '%s/embed/%s/%s' % (self._client._base_url, self._client._user_id, id)
+        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires) \
+            + ('skin=%s' % skin if skin else '')
+
+    def get_qtref_url(self, id, seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None):
+        if type(id) not in (str, unicode):
+            raise InvalidParameter('id is not valid')
+        url = '%s/qtref/%s/%s.mov' % (self._client._base_url, self._client._user_id, id)
         return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires)
 
-    def get_stream_url(self, id, asset_name='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None, cdn_url='http://cdn.dmcloud.net'):
+    def get_stream_url(self, id, asset_name='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None, download=False, cdn_url='http://cdn.dmcloud.net'):
         if type(id) not in (str, unicode):
             raise InvalidParameter('id is not valid')
         url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._client._user_id, id, asset_name, asset_name.split('_')[0])
-        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires)
+        return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires) \
+            + ('&throttle=0&helper=0&cache=0' if download else '')
 
 class CloudKey(object):
 
-    def __init__(self, user_id, api_key, base_url='http://api.dmcloud.net', proxy=None):
+    def __init__(self, user_id, api_key, base_url='http://api.dmcloud.net', proxy=None, debug=False):
+        global _DEBUG
         self._user_id = user_id if user_id else ''
         self._api_key = api_key if api_key else ''
         self._base_url = base_url
         self._act_as_user = None
         self._api_endpoint =  base_url + API_ENDPOINT
         self._proxy = proxy
+        _DEBUG = debug
 
     def __getattr__(self, method):
         if method == 'file':
