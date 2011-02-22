@@ -153,9 +153,7 @@ def sign(shared_secret, msg):
      >>> sign('sEcReT_KeY', 'hello world')
      '5f048ebaf6f06576b60716dc8f815d85'
     """
-    m = hashlib.md5()
-    m.update(msg + shared_secret)
-    return m.hexdigest()
+    return hashlib.md5(msg.encode('utf-8') + shared_secret).hexdigest()
 
 #################################################################################
 class RPCException(Exception):
