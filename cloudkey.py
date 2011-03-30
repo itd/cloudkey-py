@@ -4,7 +4,7 @@ import sys
 
 API_ENDPOINT = '/api'
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 __python_version__ = '.'.join([str(i) for i in sys.version_info[:3]])
 _DEBUG = False
 
@@ -397,6 +397,10 @@ class MediaObject(ClientObject):
     def get_stream_url(self, id, asset_name='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, countries=None, referers=None, expires=None, download=False, cdn_url='http://cdn.dmcloud.net'):
         if type(id) not in (str, unicode):
             raise InvalidParameter('id is not valid')
+        if asset_name.startswith('jpeg_thumbnail_'):
+            base_url = cdn_url.replace('cdn.', 'static.')
+            ts = '-%d' % int(expires) if expires else ''
+            return '%s/%s/%s/%s%s.jpeg' % (base_url, self._client._user_id, id, asset_name, ts)
         url = '%s/route/%s/%s/%s.%s' % (cdn_url, self._client._user_id, id, asset_name, asset_name.split('_')[0])
         return sign_url(url, self._client._api_key, seclevel=seclevel, asnum=asnum, ip=ip, useragent=useragent, countries=countries, referers=referers, expires=expires) \
             + ('&throttle=0&helper=0&cache=0' if download else '')

@@ -1,3 +1,21 @@
+cloudkey (1.1.4-1~karmic1) karmic-dc; urgency=low
+
+  * get_stream_url returns static urls for thumbnail
+
+ -- Sebastien Estienne <sebastien.estienne@gmail.com>  Wed, 30 Mar 2011 13:08:13 +0200
+
+cloudkey (1.1.3~karmic1) karmic-dc; urgency=low
+
+  * New release
+
+ -- Sebastien Estienne <sebastien.estienne@gmail.com>  Mon, 28 Feb 2011 14:11:54 +0100
+
+cloudkey (1.1~karmic1) karmic-dc; urgency=low
+
+  * Cloud repository
+
+ -- Sebastien Estienne <sebastien.estienne@gmail.com>  Thu, 24 Feb 2011 01:54:47 +0100
+
 cloudkey (1.1-1) unstable; urgency=low
 
   * Support new API
