@@ -1,42 +1,49 @@
-.. _python-sdk:
+.. _Python SDK: http://www.dmcloud.net/doc/api/python-sdk.html
 
-**********
-Python SDK
-**********
+*************
+`Python SDK`_
+*************
 
 General informations
 ====================
 
-The Python library exposes all API methods described in :ref:`cloud-api` section.
+The Python library exposes all API methods described in :ref:`cloud-api`
+section.
 
-You can download the python library on `GitHub <http://github.com/dailymotion/cloudkey-py>`_.
+You can download the python library on
+`GitHub <http://github.com/dailymotion/cloudkey-py>`_.
 
-A master class named ``CloudKey`` exposes all objects (eg: :ref:`media-api`) through object attributes.
+A master class named ``CloudKey`` exposes all objects (eg: :ref:`media-api`)
+through object attributes.
 
-The library exposes all the remote methods of :ref:`cloud-api` and also have local methods for specific purpose like uploading files or getting signed stream URLs.
+The library exposes all the remote methods of :ref:`cloud-api` and also have
+local methods for specific purpose like uploading files or getting signed
+stream URLs.
 
 Remote methods
 --------------
 
-For instance, to call the ``list`` method from the ``media`` object, the code would be as follow
+For instance, to call the ``list`` method from the ``media`` object, the
+code would be as follows:
 
 .. code-block:: python
 
-  from cloudkey import CloudKey
+    from cloudkey import CloudKey
 
-  USER_ID = '4c1a4d3edede832bfd000002'
-  API_KEY = '52a32c7890338770e3ea1601214c02142d297298'
+    USER_ID = '4c1a4d3edede832bfd000002'
+    API_KEY = '52a32c7890338770e3ea1601214c02142d297298'
 
-  cloudkey = CloudKey(USER_ID, API_KEY, BASE_URL)
-  cloudkey.media.list()
+    cloudkey = CloudKey(USER_ID, API_KEY, BASE_URL)
+    cloudkey.media.list()
 
 For methods expecting parameters, these must be passed as named arguments:
 
 .. code-block:: python
 
-   clouckey.media.list(fields=['id'], per_page=20, page=2)
+    clouckey.media.list(fields=['id'], per_page=20, page=2)
 
-The returned values are a direct mapping of the JSON structure into python's native types.
+The returned values are a direct mapping of the JSON structure into python's
+native types.
 
 Local methods
 -------------
@@ -58,9 +65,11 @@ Media object
 
 .. function:: get_embed_url(id, seclevel=None, asnum=None, ip=None, useragent=None, expires=None)
 
-   This method returns a signed URL to a Dailymotion Cloud player embed (see the API reference for details).
+   This method returns a signed URL to a Dailymotion Cloud player embed (see
+   the API reference for details).
 
-   The generated URL is perishable, and access is granted based on the provided security level bitmask.
+   The generated URL is perishable, and access is granted based on the
+   provided security level bitmask.
 
    :param id: the id of the new media object.
    :type id: media ID
@@ -69,7 +78,10 @@ Media object
    :param expires: the UNIX epoch expiration time (default is ``time() + 7200`` (2 hours from now)).
    :type expires: int
 
-   The following arguments may be required if the ``SecLevel.DELEGATE`` option is not specified in the seclevel parameter, depending on the other options. This is not recommanded as it would probably lead to spurious access denials, mainly due to GeoIP databases discrepancies.
+   The following arguments may be required if the ``SecLevel.DELEGATE``
+   option is not specified in the seclevel parameter, depending on the other
+   options. This is not recommanded as it would probably lead to spurious
+   access denials, mainly due to GeoIP databases discrepancies.
 
    :param asnum: the client's autonomous system number (default is ``None``).
    :type asnum: str
@@ -82,12 +94,14 @@ Media object
 
       // Create an embed URL limited only to the AS of the end-user and valid for 1 hour
       url = cloudkey.media.get_embed_url(id=media['id'], seclevel=SecLevel.DELEGATE | SecLevel.ASNUM, expires=time() + 3600)
-   
+
 .. function:: get_stream_url(id, preset='mp4_h264_aac', seclevel=None, asnum=None, ip=None, useragent=None, expires=None)
 
-   This method returns a signed URL to a Dailymotion Cloud video stream (see the API reference for details).
+   This method returns a signed URL to a Dailymotion Cloud video stream (see
+   the API reference for details).
 
-   The generated URL is perishable, and access is granted based on the provided security level bitmask.
+   The generated URL is perishable, and access is granted based on the
+   provided security level bitmask.
 
    :param id: the id of the new media object.
    :type id: media ID
@@ -98,7 +112,10 @@ Media object
    :param expires: the UNIX epoch expiration time (default is ``time() + 7200`` (2 hours from now)).
    :type expires: int
 
-   The following arguments may be required if the ``SecLevel.DELEGATE`` option is not specified in the seclevel parameter, depending on the other options. This is not recommanded as it would probably lead to spurious access denials, mainly due to GeoIP databases discrepancies.
+   The following arguments may be required if the ``SecLevel.DELEGATE``
+   option is not specified in the seclevel parameter, depending on the other
+   options. This is not recommanded as it would probably lead to spurious
+   access denials, mainly due to GeoIP databases discrepancies.
 
    :param asnum: the client's autonomous system number (default is ``None``).
    :type asnum: str
@@ -115,8 +132,9 @@ Quick Tour
 Security level options
 ======================
 
-The security level defines the mechanism used by the Dailymotion Cloud architecture to ensure a mediastream
-URL access will be limited to a single user or a group of users. The different (combinable) options are:
+The security level defines the mechanism used by the Dailymotion Cloud
+architecture to ensure a mediastream URL access will be limited to a single
+user or a group of users. The different (combinable) options are:
 
  - ``SecLevel.NONE``: the URL access is granted to everyone.
  - ``SecLevel.ASNUM``: the URL access is granted to the specified AS number only. AS numbers stands for 'Autonomous System number' and roughly map groups of IP to telcos and large organizations on the Internet (each ISP has its own AS number for instance, Dailyotion's AS number is AS41690).
@@ -125,7 +143,8 @@ URL access will be limited to a single user or a group of users. The different (
  - ``SecLevel.DELEGATE``: the ASNUM, IP and User-Agent values are to be gathered at the server side during the first URL access and don't need to be specified at the client side beforehand (this is the recommanded approach as it will ensure a 100%-accurate ASNUM recognition).
  - ``SecLevel.USEONCE``: the URL access is granted once only (using this option will probably prevent seeking from working correctly).
 
-For more information, please refer to the Dailymotion Cloud streams security documentation.
+For more information, please refer to the Dailymotion Cloud
+streams security documentation.
 
 Exceptions
 ==========
