@@ -1,6 +1,8 @@
 .. _Python SDK: http://www.dmcloud.net/doc/api/python-sdk.html
 .. _cloud-api: http://www.dmcloud.net/doc/api/
 .. _media-api: http://www.dmcloud.net/doc/api/cloud-api.html#media-api
+.. _Media Object: http://www.dmcloud.net/doc/api/cloud-api.html#media-api
+.. _File Object: http://www.dmcloud.net/doc/api/cloud-api.html#file-api
 
 
 *************
@@ -47,8 +49,9 @@ native types.
 Local methods
 -------------
 
-File object
-^^^^^^^^^^^^^
+`File Object`_
+^^^^^^^^^^^^^^^
+
 ``upload_file(file)``
 
   Upload a local file to Dailymotion Cloud using its path.
@@ -59,8 +62,8 @@ File object
   :rtype: dict
 
 
-Media object
-^^^^^^^^^^^^^^
+`Media object`_
+^^^^^^^^^^^^^^^
 
 ``get_embed_url(id, seclevel=None, asnum=None, ip=None, useragent=None, expires=None)``
 
@@ -172,20 +175,19 @@ Exceptions
 
 * RPCException: This is the base of all exceptions
 
- * TransportException: When an error occured with the HTTP transport
- * SerializerError: When the Request or the Response is not valid JSON
- * InvalidRequest: When the Request is not wellformed
- * InvalidCall: When the value of the ``call`` argument is invalid
- * InvalidObject: When you access an object that doesn't exist
- * InvalidMethod: When you access a method that doesn't exist
- * InvalidParameter: When a method is called with a invalid or missing parameter
- * AuthenticationError: When authentication information is invalid
+  * TransportException: When an error occured with the HTTP transport
+  * SerializerError: When the Request or the Response is not valid JSON
+  * InvalidRequest: When the Request is not wellformed
+  * InvalidCall: When the value of the ``call`` argument is invalid
+  * InvalidObject: When you access an object that doesn't exist
+  * InvalidMethod: When you access a method that doesn't exist
+  * InvalidParameter: When a method is called with a invalid or missing parameter
+  * AuthenticationError: When authentication information is invalid
 
-  * RateLimitExceeded: When you exceed the number of API calls on
-    a specific timeframe
+    * RateLimitExceeded: When you exceed the number of API calls on
+      a specific timeframe
 
-   * ApplicationException: The base class of the following exceptions
-
-   * NotFound: When action is requested on an item that doesn't exist
-   * Exists: When action is requested on an item that already exists
-   * LimitExceeded: When you reach the maximum number of allowed objects.
+      * ApplicationException: The base class of the following exceptions
+      * NotFound: When action is requested on an item that doesn't exist
+      * Exists: When action is requested on an item that already exists
+      * LimitExceeded: When you reach the maximum number of allowed objects.
