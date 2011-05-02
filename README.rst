@@ -28,19 +28,19 @@ code would be as follows:
 
 .. code-block:: python
 
-    from cloudkey import CloudKey
+  from cloudkey import CloudKey
 
-    USER_ID = '4c1a4d3edede832bfd000002'
-    API_KEY = '52a32c7890338770e3ea1601214c02142d297298'
+  USER_ID = '4c1a4d3edede832bfd000002'
+  API_KEY = '52a32c7890338770e3ea1601214c02142d297298'
 
-    cloudkey = CloudKey(USER_ID, API_KEY, BASE_URL)
-    cloudkey.media.list()
+  cloudkey = CloudKey(USER_ID, API_KEY, BASE_URL)
+  cloudkey.media.list()
 
 For methods expecting parameters, these must be passed as named arguments:
 
 .. code-block:: python
 
-    clouckey.media.list(fields=['id'], per_page=20, page=2)
+  clouckey.media.list(fields=['id'], per_page=20, page=2)
 
 The returned values are a direct mapping of the JSON structure into python's
 native types.
