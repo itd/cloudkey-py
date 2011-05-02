@@ -140,7 +140,7 @@ Quick Tour
 
 
 Security level options
-======================
+-----------------------
 
 The security level defines the mechanism used by the Dailymotion Cloud
 architecture to ensure a mediastream URL access will be limited to a single
@@ -171,7 +171,7 @@ For more information, please refer to the Dailymotion Cloud
 streams security documentation.
 
 Exceptions
-==========
+----------
 
 * RPCException: This is the base of all exceptions
 
