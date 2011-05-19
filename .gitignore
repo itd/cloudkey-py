@@ -1,2 +1,4 @@
 *.pyc
 local_config.py
+*.egg-info
+

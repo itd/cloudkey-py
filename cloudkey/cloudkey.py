@@ -4,7 +4,7 @@ import sys
 
 API_ENDPOINT = '/api'
 
-__version__ = "1.1.4"
+__version__ = open("./version.txt").read().strip()
 __python_version__ = '.'.join([str(i) for i in sys.version_info[:3]])
 _DEBUG = False
 
@@ -311,7 +311,7 @@ class ClientObject(object):
                 data = json.dumps(request, cls=JSONEncoder)
             except (TypeError, ValueError), e:
                 raise SerializerError(str(e))
-                
+
             c.setopt(pycurl.POSTFIELDS, data)
 
             if self._client._proxy:
