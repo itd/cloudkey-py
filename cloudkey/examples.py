@@ -40,12 +40,15 @@ cloudkey.media.set_meta(id=media_id, meta={'title': media_title})
 
 # We set the video that we just uploaded as the source of our media
 media_url = media_info['url']
-cloudkey.media.set_assets(id=media_id, assets=[{'name': 'source', 'url': media_url}])
+cloudkey.media.set_assets(id=media_id, assets=[{'name': 'source',
+                                                'url': media_url}])
 
-# This function retrieve an asset to check it's status and block until it's ready or failed
+# This function retrieve an asset to check
+# it's status and block until it's ready or failed
 def wait_for_asset(media_id, asset_name):
     while True:
-        asset = cloudkey.media.get_assets(id=media_id, assets_names=[asset_name])[asset_name]
+        asset = cloudkey.media.get_assets(id=media_id,
+                                          assets_names=[asset_name])[asset_name]
         if asset['status'] != 'ready':
             if asset['status'] == 'error':
                 print 'Asset couldn\'t be downloaded!'
@@ -60,14 +63,19 @@ def wait_for_asset(media_id, asset_name):
 #wait_for_asset(media_id, 'source')
 
 # We encode our source in two asset_name and wait for them
-cloudkey.media.set_assets(id=media_id, assets=[{'name': 'flv_h263_mp3'}, {'name': 'mp4_h264_aac'}])
+cloudkey.media.set_assets(id=media_id, assets=[{'name': 'flv_h263_mp3'},
+                                               {'name': 'mp4_h264_aac'}])
 
 wait_for_asset(media_id, 'flv_h263_mp3')
 wait_for_asset(media_id, 'mp4_h264_aac')
 
 # There is a quicker way to publish a video
-# we use avdanced feature of the create method to set some meta and encode the media in 2 asset_names
-media_ = cloudkey.media.create(url=media_url, assets_names=['flv_h263_mp3', 'mp4_h264_aac'], meta={'title' : media_title, 'author' : 'John Doe' })
+# we use avdanced feature of the create method to set some meta
+# and encode the media in 2 asset_names
+media_ = cloudkey.media.create(url=media_url, assets_names=['flv_h263_mp3',
+                                                            'mp4_h264_aac'],
+                                              meta={'title' : media_title,
+                                                    'author' : 'John Doe' })
 
 # we get the media id
 media_id =  media_['id']
@@ -77,10 +85,12 @@ media_id =  media_['id']
 #
 # You can retrieve the URL of a specific asset_name, this is the file
 wait_for_asset(media_id, 'flv_h263_mp3')
-print cloudkey.media.info(id=media_id, fields=['assets.flv_h263_mp3.stream_url'])
+print cloudkey.media.info(id=media_id,
+                          fields=['assets.flv_h263_mp3.stream_url'])
 
 # you can retrieve the embed URL
-print cloudkey.media.info(id=media_id, fields=['assets.flv_h263_mp3.embed_url'])
+print cloudkey.media.info(id=media_id,
+                          fields=['assets.flv_h263_mp3.embed_url'])
 
 #
 # Listing media
@@ -89,7 +99,10 @@ print cloudkey.media.info(id=media_id, fields=['assets.flv_h263_mp3.embed_url'])
 print cloudkey.media.get_assets(id=media_id)
 
 # Print some info about our media
-for m in cloudkey.media.list(fields=['id', 'meta.title', 'assets.flv_h263_mp3.stream_url', 'created'])['list']:
+for m in cloudkey.media.list(fields=['id',
+                                     'meta.title',
+                                     'assets.flv_h263_mp3.stream_url',
+                                     'created'])['list']:
     print m
 
 #
