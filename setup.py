@@ -21,7 +21,7 @@ setup(name='cloudkey',
       namespace_packages=['cloudkey'],
       include_package_data=True,
       zip_safe=False,
-      py_modules = ['cloudkey',],
+      py_modules = ['cloudkey.cloudkey',],
       install_requires=[
           'setuptools',
           'simplejson>=2.0.9',
